@@ -77,3 +77,39 @@ test('changing settings during a request refreshes the new route after committin
   callbacks[1](null, { updated: 124, journeys: [] });
   assert.deepEqual(h.messages.filter(function (m) { return m.Kind === 1; }).map(function (m) { return m.From; }), ['Gent-Sint-Pieters', 'Leuven']);
 });
+
+test('without a saved route the phone plans Ghent to Brussels South', function () {
+  var requested;
+  var transport = core.createTransport({
+    storage: { getItem: function () { return undefined; }, setItem: function () {} },
+    send: function (message, ok) { ok(); },
+    request: function (route, done) { requested = route; done(null, { updated: 1, journeys: [] }); }
+  });
+  transport.refresh(false);
+  assert.deepEqual(requested, { from: 'Gent-Sint-Pieters', to: 'Brussel-Zuid' });
+});
+
+test('a route picked on the watch is saved, planned and sends layovers with each journey', function () {
+  var requested;
+  var h = harness(function (route, done) {
+    requested = route;
+    done(null, { updated: 1794304800, from: route.from, to: route.to, journeys: [
+      { departure: 1794305000, arrival: 1794308000, delay: 0, platform: '3', train: 'IC 1', transfers: 2,
+        canceled: false, via: ['Brussel-Zuid', 'Leuven'] },
+      { departure: 1794306000, arrival: 1794309000, delay: 0, platform: '4', train: 'IC 2', transfers: 0, canceled: false }
+    ] });
+  });
+  h.transport.select('Antwerpen-Centraal', 'Luik-Guillemins');
+  assert.deepEqual(requested, { from: 'Antwerpen-Centraal', to: 'Luik-Guillemins' });
+  assert.equal(JSON.parse(h.values.route).to, 'Luik-Guillemins');
+  var rows = h.messages.filter(function (m) { return m.Kind === 2; });
+  assert.equal(rows[0].Via, 'Brussel-Zuid, Leuven');
+  assert.equal(rows[1].Via, '');
+});
+
+test('an invalid pick from the watch is reported and keeps the saved route', function () {
+  var h = harness(function () { assert.fail('must not plan'); });
+  h.transport.select('Leuven', 'leuven');
+  assert.equal(h.messages.at(-1).Status, 'Choose two different stations');
+  assert.equal(JSON.parse(h.values.route).from, 'Gent-Sint-Pieters');
+});

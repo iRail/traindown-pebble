@@ -1,0 +1,746 @@
+'s Gravenbrakel
+'s Hertogenbosch
+Aalst
+Aalst-Kerrebroek
+Aalter
+Aarau
+Aarlen
+Aarschot
+Aarsele
+Aat
+Aéroport Charles-de-Gaulle TGV
+Agde
+Aime-la-Plagne
+Aiseau
+Aix-en-Provence TGV
+Aken Hbf
+Aken West
+Akren
+Albertville
+Alken
+Almere Buiten
+Almere Centrum
+Amay
+Amersfoort Centraal
+Ampsin
+Amsterdam Centraal
+Amsterdam Zuid
+Andenne
+Anderlecht
+Angers-Saint-Laud
+Angleur
+Annappes
+Ans
+Anseremme
+Antibes
+Antoing
+Antwerpen-Berchem
+Antwerpen-Centraal
+Antwerpen-Dam
+Antwerpen-Haven
+Antwerpen-Linkeroever
+Antwerpen-Luchtbal
+Antwerpen-Noorderdokken
+Antwerpen-Oost
+Antwerpen-Zuid
+Anzegem
+Appelterre
+Arcaden
+Arras
+Arth-Goldau
+Ascq
+Asse
+Assesse
+Athus
+Athus-Frontiere
+Aubange
+Aubange-Frontiere-Luxembourg
+Aulnoye-Aymeries
+Auvelais
+Avignon TGV
+Aye
+Aywaille
+Baasrode-Zuid
+Bad Schandau
+Baisieux
+Balegem-Dorp
+Balegem-Zuid
+Balen
+Bambrugge
+Barvaux
+Bas-Oha
+Bascharage-Sanem
+Basse-Wavre
+Bastenaken-Noord
+Bastenaken-Zuid
+Bazel
+Beauraing
+Beernem
+Beersel
+Beervelde
+Begijnendijk
+Beignée
+Bellem
+Bellinzona
+Belsele
+Bergen
+Beringen
+Berlaar
+Berlijn Gesundbrunnen
+Berlijn Hbf
+Berlijn Lichtenberg
+Berlijn Ostbahnhof
+Bertrange Strassen
+Bertrix
+Berzée
+Beuzet
+Beveren
+Beverlo
+Béziers
+Bierges-Walibi
+Bierset-Awans
+Bilzen
+Binche
+Bissegem
+Blandain-Frontiere
+Blankenberge
+Blanmont
+Blaton
+Bleret
+Bockstael
+Boechout
+Bokrijk
+Bomal
+Bonn Hbf
+Bonn-Beuel
+Booischot
+Boom
+Boondaal
+Boortmeerbeek
+Bordeaux Saint Jean
+Bordet
+Borgworm
+Bornem
+Bosvoorde
+Bourg-Saint-Maurice
+Boussu
+Bouwel
+Bracquegnies
+Braine-Alliance
+Breda
+Bressoux
+Brugelette
+Brugge
+Brugge-Sint-Pieters
+Brussel-Centraal
+Brussel-Congres
+Brussel-Kapellekerk
+Brussel-Luxemburg
+Brussel-Noord
+Brussel-Schuman
+Brussel-West
+Brussel-Zuid
+Brussels Airport - Zaventem
+Buda
+Buggenhout
+Buizingen
+Burst
+Callenelle
+Cambron-Casteau
+Cannes
+Capellen
+Carlsbourg
+Carnieres
+Ceroux-Mousty
+Chambéry-Challes-les-Eaux
+Chapelle-Dieu
+Chapois
+Charleroi-Centraal
+Charleroi-West
+Chastre
+Château-de-Seilles
+Châtelet
+Chaudfontaine
+Chênée
+Ciney
+Clervaux
+Colmar
+Comblain-la-Tour
+Como San Giovanni
+Coo
+Couillet
+Cour-sur-Heure
+Courcelles-Motte
+Courrière
+Court-Saint-Étienne
+Couvin
+Creil
+Croix l'Allumette
+Croix Wasquehal
+Dave-Saint-Martin
+De Hoek
+De Panne
+De Pinte
+Deinze
+Delta
+Den Haag HS
+Denderleeuw
+Dendermonde
+Deventer
+Diegem
+Diepenbeek
+Diesdelle
+Diest
+Diksmuide
+Dilbeek
+Dinant
+Dippach-Reckange
+Dolhain-Gileppe
+Dommeldange
+Doornik
+Dordrecht
+Dortmund Hbf
+Drauffelt
+Dresden Hbf
+Drongen
+Duffel
+Duinbergen
+Duisburg Hbf
+Düsseldorf Flughafen
+Düsseldorf Flughafen Hbf
+Düsseldorf Hbf
+Ebbsfleet International
+Écaussinnes
+Ede
+Edingen
+Eeklo
+Eerken
+Eichem
+Eigenbrakel
+Eijsden
+Eine
+Eke-Nazareth
+Ekeren
+Engis
+Eppegem
+Erbisoeul
+Erembodegem
+Ernage
+Erpe-Mere
+Erps-Kwerps
+Erquelinnes
+Erquelinnes-Frontière
+Erquelinnes-Village
+Esneux
+Essen
+Essen Hbf
+Essen-Grens
+Essene-Lombeek
+Ettelbruck
+Etterbeek
+Eupen
+Evere
+Evergem
+Eygelshoven markt
+Ezemaal
+Familleureux
+Farciennes
+Faux
+Fexhe-le-Haut-Clocher
+Flawinne
+Flemalle-Grande
+Flemalle-Haute
+Fleurus
+Florée
+Floreffe
+Florenville
+Florival
+Fontaine-Valmont
+Forchies
+Forrières
+Fraipont
+Frameries
+Franchimont
+Franière
+Frankfurt am Main Flughafen Fernbf
+Frankfurt am Main Flughafen Regionalbf
+Frankfurt am Main Hbf
+FRANKFURT(MAIN) SUD
+Freilassing
+Froyennes
+Galmaarden
+Gastuche
+Gavere-Asper
+Gedinne
+Geel
+Gembloux
+Gendron-Celles
+Genk
+Genly
+Gent-Dampoort
+Gent-Sint-Pieters
+Gentbrugge
+Genval
+Geraardsbergen
+Ghlin
+Glaaien
+Godarville
+Godinne
+Goebelsmühle
+Gontrode
+Göschenen
+Gouvy
+Gouvy-Frontiere
+Gouy-lez-Pieton
+Graide
+Groenendaal
+Groot-Bijgaarden
+Grupont
+Haacht
+Haaltert
+Habay
+Hainin
+Halanzy
+Halle
+Ham-sur-Heure
+Ham-sur-Sambre
+Hambos
+Hamburg-Harburg
+Hamoir
+Hamont
+Hansbeke
+Harchies
+Harelbeke
+Haren
+Haren-Zuid
+Hasselt
+Haute-Flône
+Haute-Picardie TGV
+Haversin
+Havre
+Heerlen
+Heide
+Heist
+Heist-op-den-Berg
+Heizijde
+Hellemmes
+Hemiksem
+Hennuyères
+Herent
+Herentals
+Hergenrath
+Hergenrath-Frontiere
+Herne
+Herseaux
+Herstal
+Herzele
+Herzogenrath
+Heusden
+Hever
+Heverlee
+Hillegem
+Hoboken-Polder
+Hoei
+Hoeilaart
+Hofstade
+Holleken
+Hollerich
+Hony
+Houraing
+Hourpes
+Houyet
+Hove
+Huizingen
+Idar-Oberstein
+Iddergem
+Idegem
+Ieper
+Ingelmunster
+Izegem
+Jambes
+Jambes-Est
+Jamioulx
+Jemappes
+Jemeppe-sur-Meuse
+Jemeppe-sur-Sambre
+Jette
+Jurbeke
+Juslenville
+Kalmthout
+Kapelle-op-den-Bos
+Kapellen
+Kautenbach
+Kessel
+Keulen Hbf
+Keulen Süd
+Keulen-Ehrenfeld
+Kiewit
+Kijkuit
+Kleinbettingen
+Knokke
+Koblenz Hbf
+Koksijde
+Komen
+Kontich-Lint
+Kortemark
+Kortenberg
+Kortrijk
+Kwatrecht
+La Louvière-Centrum
+La Louvière-Zuid
+La Roche (Brabant)
+Labuissière
+Lamadeleine
+Landegem
+Landelies
+Landen
+Landgraaf
+Landry
+Landskouter
+Langdorp
+Le Campinaire
+Le Mans
+Lebbeke
+Lede
+Leignon
+Lelystad Centrum
+Leman
+Lembeek
+Lens
+Leopoldsburg
+Les Arcs - Draguignan
+Lessen
+Leudelange
+Leuven
+Leuze
+Leval
+Lezennes
+Libramont
+Lichtervelde
+Liedekerke
+Lier
+Lierde
+Liers
+Ligny
+Lillois
+Limal
+Limburg Süd
+Linkebeek
+Linz Hbf
+Lissewege
+Lobbes
+Lodelinsart
+Lokeren
+Lommel
+Londen Saint Pancras
+Londen Waterloo
+Londerzeel
+Lonzée
+Lorraine TGV
+Lot
+Louvain-la-Neuve
+Lugano
+Luik-Carre
+Luik-Guillemins
+Luik-Sint-Lambertus
+Lustin
+Luttre
+Luxemburg
+Lyon Part Dieu TGV
+Lyon-Perrache TGV
+Lyon-Saint Exupéry TGV
+Maastricht
+Maastricht Randwyck
+Maffle
+Mainz Hbf
+Malderen
+Mamer
+Mamer-Lycée
+Manage
+Mannheim Hbf
+Marbehan
+Marche-en-Famenne
+Marche-les-Dames
+Marche-lez-Écaussinnes
+Marchienne-au-Pont
+Marchienne-Zone
+Maria-Aalter
+Mariembourg
+Marloie
+Marne-la-Vallée - Chessy
+Marseille-Saint-Charles
+Masnuy-Saint-Pierre
+Massy TGV
+Maubeuge
+Maubray
+Mazy
+Mechelen
+Mechelen-Nekkerspoel
+Meer-Grens
+Meerssen
+Meiser
+Melkouwen
+Melle
+Melle PW
+Melreux-Hotton
+Melsele
+Menen
+Merchtem
+Merelbeke
+Merode
+Mersch
+Méry
+Messancy
+Metz
+Mevergnies-Attre
+Michelau
+Milano Porta Garibaldi
+Milmort
+Moensberg
+Moeskroen
+Moeskroen-Grens
+Mol
+Mollem
+Momalle
+Mont-Saint-Guibert
+Montabaur
+Montpellier
+Montpellier-Sud-de-France
+Moortsele
+Morlanwelz
+Mortsel
+Mortsel-Deurnesteenweg
+Mortsel-Liersesteenweg
+Mortsel-Oude God
+Moustier
+Mouterij
+Moûtiers-Salins-Brides-les-Bai
+Muizen
+Mulhouse
+München Ost
+Munkzwalm
+Namêche
+Namen
+Naninne
+Nantes
+Narbonne
+Natoye
+Neerpelt
+Neerwinden
+Nessonvaux
+Neufchâteau
+Neufvilles
+Nice Ville
+Niel
+Nieuwkerken-Waas
+Nijlen
+Nijvel
+Nîmes
+Nimy
+Ninove
+Noorderkempen
+Nossegem
+NURNBERG
+Obaix-Buzet
+Obourg
+Okegem
+Olen
+Oostende
+Oostkamp
+Opwijk
+Opzullik
+Ottignies
+Oud-Heverlee
+Oudegem
+Oudenaarde
+Ougrée
+Overpelt
+Paliseul
+Papegem
+Parijs Noord
+Paris Est
+PASSAU HBF
+Pécrot
+Pepinster
+Pepinster-Cité
+Perpignan
+Péruwelz
+Petange
+Pfaffenthal-Kirchberg
+Philippeville
+Piéton
+Poix-Saint-Hubert
+Pont de Bois
+Pont-à-Celles
+Pont-de-Seraing
+Poperinge
+Poulseur
+Praag hl.n.
+Profondsart
+Pry
+Puurs
+Quaregnon
+Quevy
+Quevy-frontiere
+Quievrain
+Rebaix
+Remicourt
+Rennes
+Rhisnes
+Rijsel-Europa
+Rijsel-Vlaanderen
+Rivage
+Rixensart
+Rochefort-Jemelle
+Rodange
+Roeselare
+Ronet
+Ronse
+Roosendaal
+Rosenheim
+Rotterdam Centraal
+Roubaix
+Roux
+Ruisbroek
+Ruisbroek-Sauvegarde
+Saint-Denis-Bovesse
+Saint-Ghislain
+Saint-Louis-Haut-Rhin
+Saint-Raphaël-Valescure
+Salzburg Hbf
+Sart-Bernard
+Saverne
+Schaarbeek
+Scheldewindeke
+Schelle
+Schellebelle
+Schendelbeke
+Schiphol
+Schoonaarde
+Schouweiler
+Schulen
+Sclaigneaux
+Sclessin
+Selestat
+Seraing
+Serskamp
+Sète
+Siegburg
+Simonis
+Sinaai
+Sint-Agatha-Berchem
+Sint-Denijs-Boekel
+Sint-Genesius-Rode
+Sint-Gillis-Dendermonde
+Sint-Job
+Sint-Joris-Weert
+Sint-Katelijne-Waver
+Sint-Mariaburg
+Sint-Martens-Bodegem
+Sint-Niklaas
+Sint-Truiden
+Sleidinge
+Solre-sur-Sambre
+Spa
+Spa-Géronstère
+St. Pölten Hbf
+Statte
+Sterpenich-Frontiere
+Stockem
+Straatsburg
+Sy
+Tamines
+Temse
+Terhagen
+Terhulpen
+Ternat
+Testelt
+Theux
+Thieu
+Thionville
+Thuin
+Thulin
+Thurn en Taxis
+Tielen
+Tielt
+Tienen
+Tilff
+Tilly
+Tollembeek
+Tongeren
+Torhout
+Toulon
+Tourcoing
+Trois-Ponts
+Troisvierges
+Trooz
+Tubeke
+Turnhout
+Ukkel-Kalevoet
+Ukkel-Stalle
+Ústí nad Labem hl.n.
+Utrecht Centraal
+Valence TGV
+Valkenburg
+Veltem
+Venetië Santa Lucia
+Vertrijk
+Verviers-Centraal
+Verviers-Paleis
+Veurne
+Viane-Moerbeke
+Vichte
+Vielsalm
+Vijfhuizen
+Villers-la-Ville
+Vilvoorde
+Virton
+Vise-Frontiere
+Viville
+Voroux
+Vorst-Oost
+Vorst-Zuid
+Waarschoot
+Walcourt
+Waregem
+Waterloo
+Watermaal
+Waver
+Weerde
+Welkenraedt
+Welle
+Wenen Hbf
+Wenen Meidling
+Wervik
+Wespelaar-Tildonk
+Wetteren
+Wevelgem
+Wezemaal
+Wezet
+Wichelen
+Wijgmaal
+Wildert
+Willebroek
+Wilwerwiltz
+Wolfstee
+Wondelgem
+Würzburg Hbf
+Y.renory
+Yves-Gomezée
+Yvoir
+Zandbergen
+Zaventem
+Zedelgem
+Zeebrugge-Dorp
+Zeebrugge-Strand
+Zele
+Zellik
+Zichem
+Zingem
+Zinnik
+Zolder
+Zonhoven
+Zottegem
+Zwankendamme
+Zwijndrecht
+Zwijndrecht-Dorp

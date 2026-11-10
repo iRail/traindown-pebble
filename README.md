@@ -6,9 +6,10 @@ A train countdown app inspired by [iRail Traindown](https://github.com/iRail/fit
 
 ## Features
 
-- One saved station-to-station route, configured in the Pebble phone app.
+- One saved station-to-station route, **Gent-Sint-Pieters → Brussel-Zuid** by default. Change it on the watch (see below) or in the Pebble phone app.
+- The departure station is shown at the top and the destination at the bottom, joined by a metro-style line on the right with a ring for each station you change at.
 - Browse the next six journeys, including canceled journeys.
-- Countdown, expected departure and arrival, first train/platform, delay and number of changes.
+- Live countdown to departure as `5h 13m 30s`, expected departure and arrival, first platform, delay and the layover stations.
 - Refresh on opening and every minute while the watch app is running.
 - Persistent last-successful results, marked **Cached** after a failed refresh, disconnection, or two minutes without fresh data.
 - Atomic Bluetooth updates: an incomplete transfer leaves the previous board intact.
@@ -37,7 +38,7 @@ Enable the phone app's Developer Connection for local installation. Alternativel
 
 The `wscript` bundles the phone code with esbuild, including the compiled Clay settings component and SDK-generated numeric message keys. `enableMultiJS` is intentionally false because the SDK's older webpack cannot parse the planner's modern ESM dependencies. The custom build includes those keys explicitly.
 
-Open Traindown's settings in the mobile app, enter departure/destination station names, and save. The settings page is bundled using `@rebble/clay`. Previously saved routes continue working; any old service URL is ignored.
+Stations can be changed on the watch itself. The settings page in the mobile app (bundled using `@rebble/clay`) still works too; saved routes continue working and any old service URL is ignored.
 
 ## Watch controls
 
@@ -46,7 +47,16 @@ Open Traindown's settings in the mobile app, enter departure/destination station
 | Up / Down | Previous / next journey |
 | Select | Refresh |
 | Hold Select | Reverse and save the route, then refresh |
+| Hold Up | Change the departure station (the top of the screen) |
+| Hold Down | Change the destination station (the bottom of the screen) |
+| Tap the top / bottom | Same, on the Pebble Time 2 touchscreen |
 | Back | Exit |
+
+### Choosing a station
+
+All 746 stations known to `@irail/planner` are stored on the watch, so the picker works instantly and offline. It narrows the list one level at a time instead of asking you to type: the first screen lists your recent stations and then the letters (`B…  85`), and choosing a group zooms in (`Br…`, `Bru…`) until at most 12 stations remain, which are listed in full. Prefixes that every station of a group shares are skipped. Back zooms out, and closes the picker from the top level. Brussel-Zuid takes Hold Down, then B, Br, Bru and one pick. Choosing the station at the other end of the route swaps the two.
+
+The station list is `resources/stations.txt`, generated from the planner by `node scripts/build-stations.mjs` (needs internet). It must stay sorted the way that script sorts it, because the watch finds all stations with a given prefix as one contiguous range; `npm test` checks this. Two stations whose names the watch fonts cannot draw are left out.
 
 The app needs a connected Pebble phone companion and internet for fresh data. It refreshes only while open. This version does not include background alerts, automatic nearest-station selection, or transfer-by-transfer detail screens.
 
@@ -65,4 +75,4 @@ To exercise the actual bundled companion in Chromium against the live iRail CDN,
 npm run test:browser
 ```
 
-This test simulates the Pebble bridge, opens the bundled settings, saves a route, computes real journeys inside the browser, and checks the resulting watch messages. It reports initial and repeat query timing and download volume in `build/browser-smoke.json`. It does not replace testing the Android app, configuration webview and Bluetooth connection on your phone and watch. Watch layouts can be checked separately in the Flint and Emery emulators with sample AppMessages.
+This test simulates the Pebble bridge, opens the bundled settings, saves a route, computes real journeys inside the browser, and checks the resulting watch messages. It reports initial and repeat query timing and download volume in `build/browser-smoke.json`. It does not replace testing the Android app, configuration webview and Bluetooth connection on your phone and watch. Watch layouts and the station picker can be checked in the Flint and Emery emulators; the picker runs entirely on the watch, so `pebble emu-button` works (use `push`, wait, `release` for a long press). The emulator's phone runtime cannot run the planner, so send sample AppMessages to see journeys (the new `Via` key carries the layover names). Touch input is only available on the Time 2 and has not been tried in the emulator.

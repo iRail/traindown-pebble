@@ -4,7 +4,7 @@
   { "type": "section", "items": [
     { "type": "heading", "defaultValue": "Your route" },
     { "type": "input", "messageKey": "from", "label": "From station", "defaultValue": "Gent-Sint-Pieters" },
-    { "type": "input", "messageKey": "to", "label": "To station", "defaultValue": "Brussel-Centraal" }
+    { "type": "input", "messageKey": "to", "label": "To station", "defaultValue": "Brussel-Zuid" }
   ]},
   { "type": "text", "defaultValue": "On the watch: Up/Down browse trains. Select refreshes. Hold Select to reverse the route. Times use your watch's timezone." },
   { "type": "submit", "defaultValue": "Save route" }

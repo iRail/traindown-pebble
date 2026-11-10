@@ -7,6 +7,8 @@ function shortText(value, max) {
   return decodeURIComponent(escape(chars.slice(0, bytes)));
 }
 
+var DEFAULT_ROUTE = { from: 'Gent-Sint-Pieters', to: 'Brussel-Zuid' };
+
 function createTransport(options) {
   var busy = false, token = 0, pendingRefresh = false;
   var outgoing = [], sending = false;
@@ -36,8 +38,11 @@ function createTransport(options) {
     }
   }
   function settings() {
-    try { return JSON.parse(options.storage.getItem('route') || '{}'); }
-    catch (error) { return {}; }
+    var route;
+    try { route = JSON.parse(options.storage.getItem('route') || '{}'); }
+    catch (error) { route = {}; }
+    // Out of the box: Ghent to Brussels South.
+    return route.from && route.to ? route : { from: DEFAULT_ROUTE.from, to: DEFAULT_ROUTE.to };
   }
   function status(message) { send({ Kind: 0, Status: shortText(message, 63) }, function () {}, function () {}); }
   function configure(route) {
@@ -56,7 +61,6 @@ function createTransport(options) {
   function refresh(reverse) {
     if (busy) { pendingRefresh = true; return; }
     var route = settings();
-    if (!route.from || !route.to) { status('Open settings in the phone app'); return; }
     if (reverse) {
       var previous = route.from;
       route.from = route.to;
@@ -77,14 +81,21 @@ function createTransport(options) {
               !isFinite(journey.transfers)) throw new Error('Invalid journey response');
           messages.push({ Kind: 2, Token: activeToken, Index: index, Departure: journey.departure,
             Arrival: journey.arrival, Delay: journey.delay, Platform: shortText(journey.platform || '?', 11),
-            Train: shortText(journey.train, 23), Transfers: journey.transfers, Canceled: journey.canceled ? 1 : 0 });
+            Train: shortText(journey.train, 23), Transfers: journey.transfers, Canceled: journey.canceled ? 1 : 0,
+            Via: shortText((journey.via || []).join(', '), 47) });
         });
         messages.push({ Kind: 3, Token: activeToken });
         sendAll(messages, 0);
       } catch (invalid) { status(invalid.message); finish(); }
     });
   }
-  return { refresh: refresh, configure: configure, status: status };
+  // The watch picked new stations: remember them and plan the new route.
+  function select(from, to) {
+    try { configure({ from: from, to: to }); }
+    catch (error) { status(error.message); return; }
+    refresh(false);
+  }
+  return { refresh: refresh, configure: configure, select: select, status: status };
 }
 
 module.exports = { createTransport: createTransport, shortText: shortText };

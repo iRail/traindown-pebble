@@ -13,7 +13,13 @@ export function normalizeConnection(connection) {
   const delay = Number(connection.departureDelay ?? first.from.delay ?? 0);
   const arrivalDelay = Number(connection.arrivalDelay ?? rides.at(-1).to.delay ?? 0);
   if (!Number.isFinite(delay) || !Number.isFinite(arrivalDelay)) throw new Error('Planner returned an invalid delay');
+  // Layovers: where each train but the last ends, i.e. the stations you change at.
+  const via = rides.slice(0, -1).map((ride) => {
+    const station = ride.to.station;
+    return String(station?.name ?? station ?? '').trim();
+  }).filter(Boolean);
   return {
+    via,
     departure: epoch(connection.departure) + delay,
     arrival: epoch(connection.arrival) + arrivalDelay,
     delay,

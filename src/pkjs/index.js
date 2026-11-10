@@ -22,8 +22,10 @@ var transport = core.createTransport({
 
 Pebble.addEventListener('ready', function () { transport.refresh(false); });
 Pebble.addEventListener('appmessage', function (event) {
-  var command = event.payload.Command || event.payload[keys.Command];
-  if (command) transport.refresh(command === 2);
+  var payload = event.payload;
+  var command = payload.Command || payload[keys.Command];
+  if (command === 3) transport.select(payload.From || payload[keys.From], payload.To || payload[keys.To]);
+  else if (command) transport.refresh(command === 2);
 });
 Pebble.addEventListener('showConfiguration', function () {
   // Route reversal also updates the form the next time it is opened.

@@ -36,11 +36,18 @@
             "Transfers",
             "Canceled",
             "Updated",
-            "Status"
+            "Status",
+            "Via"
         ],
         "projectType": "native",
         "resources": {
-            "media": []
+            "media": [
+                {
+                    "type": "raw",
+                    "name": "STATIONS",
+                    "file": "stations.txt"
+                }
+            ]
         },
         "sdkVersion": "3",
         "targetPlatforms": [

@@ -103,3 +103,12 @@ test('timeout aborts the download and the next attempt gets a new planner', asyn
   assert.deepEqual((await query(route)).journeys, []);
   assert.equal(planners, 2);
 });
+
+test('layover stations are the stops where each train but the last ends', () => {
+  const connection = fixture();
+  connection.legs[0].to.station = { name: 'Brussel-Zuid' };
+  connection.legs.push({ type: 'ride', vehicle: { name: 'IC 9' }, from: { delay: 0 }, to: { delay: 0, station: { name: 'Leuven' } } });
+  connection.transfers = 1;
+  assert.deepEqual(normalizeConnection(connection).via, ['Brussel-Zuid']);
+  assert.deepEqual(normalizeConnection(fixture()).via, []);
+});
