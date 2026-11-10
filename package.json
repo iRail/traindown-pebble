@@ -1,0 +1,33 @@
+{
+    "author": "moddable.tech",
+    "dependencies": {
+        "@irail/planner": "^0.1.3"
+    },
+    "keywords": [
+        "pebble-app"
+    ],
+    "name": "pdc-sequence",
+    "pebble": {
+        "displayName": "pdc-sequence",
+        "enableMultiJS": true,
+        "manifestVersion": 2,
+        "messageKeys": [
+            "dummy"
+        ],
+        "projectType": "moddable",
+        "resources": {
+            "media": []
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "gabbro",
+            "emery"
+        ],
+        "usesPermissions": [],
+        "uuid": "75b2f924-fa08-44a7-bd4b-21bfb25d2851",
+        "watchapp": {
+            "watchface": false
+        }
+    },
+    "version": "1.0.0"
+}
