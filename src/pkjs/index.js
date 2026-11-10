@@ -23,8 +23,11 @@ var transport = core.createTransport({
 Pebble.addEventListener('ready', function () { transport.refresh(false); });
 Pebble.addEventListener('appmessage', function (event) {
   var payload = event.payload;
-  var command = payload.Command || payload[keys.Command];
-  if (command === 3) transport.select(payload.From || payload[keys.From], payload.To || payload[keys.To]);
+  // Values arrive under the message key's name or its number, depending on the runtime.
+  function value(name) { return payload[name] !== undefined ? payload[name] : payload[keys[name]]; }
+  var command = value('Command');
+  if (command === 3) transport.select(value('From'), value('To'));
+  else if (command === 4) transport.details(value('Token'), value('Index'));
   else if (command) transport.refresh(command === 2);
 });
 Pebble.addEventListener('showConfiguration', function () {

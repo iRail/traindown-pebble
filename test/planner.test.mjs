@@ -112,3 +112,32 @@ test('layover stations are the stops where each train but the last ends', () => 
   assert.deepEqual(normalizeConnection(connection).via, ['Brussel-Zuid']);
   assert.deepEqual(normalizeConnection(fixture()).via, []);
 });
+
+test('legs carry expected times, platforms and intermediate stops for the trip overview', () => {
+  const station = (name) => ({ name });
+  const connection = {
+    departure: new Date('2026-11-10T10:00:00Z'), arrival: new Date('2026-11-10T11:00:00Z'), transfers: 1,
+    legs: [
+      { type: 'ride', vehicle: { name: 'IC 1' },
+        from: { station: station('Gent-Sint-Pieters'), time: '2026-11-10T10:00:00Z', delay: 120, platform: '7' },
+        to: { station: station('Brussel-Noord'), time: '2026-11-10T10:30:00Z', delay: 60, platform: '3' },
+        stops: [{ station: station('Lokeren'), arrival: '2026-11-10T10:10:00Z', arrivalDelay: 120 },
+                { station: station('Broken'), arrival: 'not a time' }] },
+      { type: 'ride', vehicle: { name: 'IC 2' },
+        from: { station: station('Brussel-Noord'), time: '2026-11-10T10:37:00Z', delay: 0, platform: null },
+        to: { station: station('Leuven'), time: '2026-11-10T11:00:00Z', delay: 0, platform: '2' }, stops: [] }
+    ]
+  };
+  const [first, second] = normalizeConnection(connection).legs;
+  assert.equal(first.departure, Date.parse('2026-11-10T10:02:00Z') / 1000);
+  assert.equal(first.arrival, Date.parse('2026-11-10T10:31:00Z') / 1000);
+  assert.equal(first.delay, 120);
+  assert.deepEqual([first.platform, first.toPlatform], ['7', '3']);
+  assert.deepEqual(first.stops, [{ name: 'Lokeren', time: Date.parse('2026-11-10T10:12:00Z') / 1000 }]);
+  assert.equal(second.platform, '?');
+  assert.equal(second.train, 'IC 2');
+});
+
+test('a journey whose legs lack times still normalizes, without an overview', () => {
+  assert.deepEqual(normalizeConnection(fixture()).legs, []);
+});

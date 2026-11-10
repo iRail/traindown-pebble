@@ -4,6 +4,35 @@ const epoch = (value) => {
   return Math.floor(milliseconds / 1000);
 };
 
+const stationName = (station) => String(station?.name ?? station ?? '').trim();
+const expected = (time, delay) => epoch(time) + (Number(delay) || 0);
+
+// One train of a journey, for the trip overview: where and when it is boarded and
+// left (expected times, delays included) and the stops it makes in between.
+function normalizeLeg(ride) {
+  try { return buildLeg(ride); } catch (error) { return null; }
+}
+
+function buildLeg(ride) {
+  const stops = [];
+  for (const stop of ride.stops ?? []) {
+    try {
+      stops.push({ name: stationName(stop.station), time: expected(stop.arrival ?? stop.departure, stop.arrivalDelay ?? stop.departureDelay) });
+    } catch (error) { /* a stop without a usable time is left out of the overview */ }
+  }
+  return {
+    train: String(ride.vehicle?.name ?? 'Train'),
+    from: stationName(ride.from.station),
+    to: stationName(ride.to.station),
+    departure: expected(ride.from.time, ride.from.delay),
+    arrival: expected(ride.to.time, ride.to.delay),
+    delay: Number(ride.from.delay) || 0,
+    platform: String(ride.from.platform ?? '?'),
+    toPlatform: String(ride.to.platform ?? '?'),
+    stops
+  };
+}
+
 // connections() returns scheduled Date values plus delays in seconds. The watch
 // receives expected epoch seconds; it must not add the delay a second time.
 export function normalizeConnection(connection) {
@@ -13,6 +42,7 @@ export function normalizeConnection(connection) {
   const delay = Number(connection.departureDelay ?? first.from.delay ?? 0);
   const arrivalDelay = Number(connection.arrivalDelay ?? rides.at(-1).to.delay ?? 0);
   if (!Number.isFinite(delay) || !Number.isFinite(arrivalDelay)) throw new Error('Planner returned an invalid delay');
+  const legs = rides.map(normalizeLeg);
   // Layovers: where each train but the last ends, i.e. the stations you change at.
   const via = rides.slice(0, -1).map((ride) => {
     const station = ride.to.station;
@@ -20,6 +50,8 @@ export function normalizeConnection(connection) {
   }).filter(Boolean);
   return {
     via,
+    // Empty when a train lacks usable times: the board still works, only the overview does not.
+    legs: legs.every(Boolean) ? legs : [],
     departure: epoch(connection.departure) + delay,
     arrival: epoch(connection.arrival) + arrivalDelay,
     delay,

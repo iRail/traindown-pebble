@@ -8,9 +8,43 @@ function shortText(value, max) {
 }
 
 var DEFAULT_ROUTE = { from: 'Gent-Sint-Pieters', to: 'Brussel-Zuid' };
+// Limits of the watch's trip overview (MAX_LEGS and MAX_STOPS in src/c/detail.c).
+var MAX_LEGS = 6, MAX_STOPS = 40, CHUNK_BYTES = 600;
+
+// The stops of one train as lines of "epoch name", split so each message stays far below
+// the watch's 1024-byte AppMessage inbox.
+function stopChunks(stops) {
+  var chunks = [], current = '';
+  stops.slice(0, MAX_STOPS).forEach(function (stop) {
+    var line = Math.floor(stop.time) + ' ' + shortText(stop.name, 27);
+    if (current && current.length + line.length + 1 > CHUNK_BYTES) { chunks.push(current); current = ''; }
+    current += (current ? '\n' : '') + line;
+  });
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+// Messages describing one journey in full: Kind 4 starts, 5 is a train, 6 carries its stops,
+// 7 ends. The watch ignores anything whose Token and Index are not the ones it asked for.
+function detailMessages(token, index, legs) {
+  var base = { Token: token, Index: index };
+  var messages = [Object.assign({ Kind: 4, Count: Math.min(legs.length, MAX_LEGS) }, base)];
+  legs.slice(0, MAX_LEGS).forEach(function (leg, number) {
+    messages.push(Object.assign({ Kind: 5, Leg: number, From: shortText(leg.from, 43), To: shortText(leg.to, 43),
+      Train: shortText(leg.train, 23), Departure: leg.departure, Arrival: leg.arrival, Delay: leg.delay,
+      Platform: shortText(leg.platform, 11), ToPlatform: shortText(leg.toPlatform, 11) }, base));
+    stopChunks(leg.stops).forEach(function (chunk) {
+      messages.push(Object.assign({ Kind: 6, Leg: number, Stops: chunk }, base));
+    });
+  });
+  messages.push(Object.assign({ Kind: 7 }, base));
+  return messages;
+}
 
 function createTransport(options) {
   var busy = false, token = 0, pendingRefresh = false;
+  // The last few boards with their trains, so the watch can ask for a journey's details.
+  var boards = {}, boardTokens = [];
   var outgoing = [], sending = false;
   function pump() {
     if (sending || !outgoing.length) return;
@@ -85,9 +119,23 @@ function createTransport(options) {
             Via: shortText((journey.via || []).join(', '), 47) });
         });
         messages.push({ Kind: 3, Token: activeToken });
+        boards[activeToken] = data.journeys;
+        boardTokens.push(activeToken);
+        while (boardTokens.length > 3) delete boards[boardTokens.shift()];
         sendAll(messages, 0);
       } catch (invalid) { status(invalid.message); finish(); }
     });
+  }
+  // The watch wants the trains and stops of one journey of a board it received.
+  function details(boardToken, index) {
+    var journey = boards[boardToken] && boards[boardToken][index];
+    var messages = journey && journey.legs && journey.legs.length ?
+      detailMessages(boardToken, index, journey.legs) :
+      [{ Kind: 8, Token: boardToken, Index: index, Status: 'Trip details unavailable\nPress Back and refresh' }];
+    (function next(position) {
+      if (position === messages.length) return;
+      send(messages[position], function () { next(position + 1); }, function () {});
+    })(0);
   }
   // The watch picked new stations: remember them and plan the new route.
   function select(from, to) {
@@ -95,7 +143,7 @@ function createTransport(options) {
     catch (error) { status(error.message); return; }
     refresh(false);
   }
-  return { refresh: refresh, configure: configure, select: select, status: status };
+  return { refresh: refresh, configure: configure, select: select, details: details, status: status };
 }
 
-module.exports = { createTransport: createTransport, shortText: shortText };
+module.exports = { createTransport: createTransport, shortText: shortText, stopChunks: stopChunks };

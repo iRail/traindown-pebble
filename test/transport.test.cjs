@@ -113,3 +113,66 @@ test('an invalid pick from the watch is reported and keeps the saved route', fun
   assert.equal(h.messages.at(-1).Status, 'Choose two different stations');
   assert.equal(JSON.parse(h.values.route).from, 'Gent-Sint-Pieters');
 });
+
+function overviewJourney(stopCount) {
+  var stops = [];
+  for (var i = 0; i < stopCount; i++) stops.push({ name: 'Station ' + i, time: 1794305000 + i * 60 });
+  return { departure: 1794305000, arrival: 1794308000, delay: 0, platform: '3', train: 'IC 1', transfers: 1, canceled: false,
+    legs: [
+      { train: 'IC 1', from: 'Gent-Sint-Pieters', to: 'Brussel-Noord', departure: 1794305000, arrival: 1794306000, delay: 60,
+        platform: '7', toPlatform: '3', stops: stops },
+      { train: 'IC 2', from: 'Brussel-Noord', to: 'Leuven', departure: 1794306400, arrival: 1794308000, delay: 0,
+        platform: '5', toPlatform: '2', stops: [] }
+    ] };
+}
+
+test('the phone sends the trains and stops of a journey the watch asks for', function () {
+  var h = harness(function (route, done) { done(null, { updated: 1, journeys: [overviewJourney(3)] }); });
+  h.transport.refresh(false);
+  var token = h.messages.find(function (m) { return m.Kind === 1; }).Token;
+  h.messages.length = 0;
+  h.transport.details(token, 0);
+  assert.deepEqual(h.messages.map(function (m) { return m.Kind; }), [4, 5, 6, 5, 7]);
+  assert.equal(h.messages[0].Count, 2);
+  assert.equal(h.messages[1].From, 'Gent-Sint-Pieters');
+  assert.equal(h.messages[1].ToPlatform, '3');
+  assert.equal(h.messages[1].Delay, 60);
+  assert.equal(h.messages[2].Stops, '1794305000 Station 0\n1794305060 Station 1\n1794305120 Station 2');
+  assert.ok(h.messages.every(function (m) { return m.Token === token && m.Index === 0; }));
+});
+
+test('long stop lists are split into messages that fit the watch inbox and capped', function () {
+  var chunks = core.stopChunks(overviewJourney(60).legs[0].stops);
+  assert.ok(chunks.length > 1);
+  assert.ok(chunks.every(function (chunk) { return Buffer.byteLength(chunk) < 700; }));
+  var lines = chunks.join('\n').split('\n');
+  assert.equal(lines.length, 40);
+  assert.equal(lines[0], '1794305000 Station 0');
+});
+
+test('details of an unknown or expired board are refused instead of guessed', function () {
+  var h = harness(function (route, done) { done(null, { updated: 1, journeys: [overviewJourney(1)] }); });
+  h.transport.refresh(false);
+  h.messages.length = 0;
+  h.transport.details(999, 0);
+  assert.deepEqual(h.messages.map(function (m) { return m.Kind; }), [8]);
+  assert.match(h.messages[0].Status, /unavailable/);
+  h.messages.length = 0;
+  h.transport.details(h.values.token || 1, 5);
+  assert.equal(h.messages[0].Kind, 8);
+});
+
+test('only the last three boards can be asked for details', function () {
+  var h = harness(function (route, done) { done(null, { updated: 1, journeys: [overviewJourney(1)] }); });
+  var tokens = [];
+  for (var i = 0; i < 4; i++) {
+    h.transport.refresh(false);
+    tokens.push(h.messages.filter(function (m) { return m.Kind === 1; }).at(-1).Token);
+  }
+  h.messages.length = 0;
+  h.transport.details(tokens[0], 0);
+  assert.equal(h.messages[0].Kind, 8);
+  h.messages.length = 0;
+  h.transport.details(tokens[3], 0);
+  assert.equal(h.messages[0].Kind, 4);
+});

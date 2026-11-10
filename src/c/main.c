@@ -1,4 +1,5 @@
 #include <pebble.h>
+#include "detail.h"
 #include "stations.h"
 
 #define MAX_TRAINS 6
@@ -28,6 +29,8 @@ static Board s_board, s_pending;
 static Train s_trains[MAX_TRAINS], s_rows[MAX_TRAINS];
 static uint8_t s_selected, s_received;
 static int32_t s_token;
+// Token of the board on screen when it came from the phone in this session; 0 for a cached board.
+static int32_t s_board_token;
 static bool s_loading, s_ready, s_stale = true;
 // True from picking a new route until the phone answers with a board for it.
 static bool s_route_pending;
@@ -228,6 +231,7 @@ static void set_route(const char *from, const char *to) {
   snprintf(s_to, sizeof(s_to), "%s", to);
   // The old board belongs to the old route; drop it until the phone answers.
   memset(&s_board, 0, sizeof(s_board));
+  s_board_token = 0;
   persist_delete(CACHE_META);
   s_selected = 0;
   s_stale = true;
@@ -271,6 +275,10 @@ static int32_t number(DictionaryIterator *iter, uint32_t key) {
 static void inbox(DictionaryIterator *iter, void *context) {
   s_ready = true;
   int kind = number(iter, MESSAGE_KEY_Kind);
+  if (kind >= 4) {  // trip overview data
+    detail_handle_message(iter, kind);
+    return;
+  }
   if (kind == 0) {
     copy_text(iter, MESSAGE_KEY_Status, s_status, sizeof(s_status));
     s_loading = strcmp(s_status, "Updating...") == 0 || strcmp(s_status, "Already updating") == 0;
@@ -315,6 +323,7 @@ static void inbox(DictionaryIterator *iter, void *context) {
     snprintf(s_from, sizeof(s_from), "%s", s_board.from);
     snprintf(s_to, sizeof(s_to), "%s", s_board.to);
     s_route_pending = false;
+    s_board_token = s_token;
     s_selected = 0;
     s_loading = false;
     s_stale = false;
@@ -333,11 +342,19 @@ static void failed(AppMessageResult reason, void *context) {
   redraw();
 }
 
-static void outbox_failed(DictionaryIterator *iter, AppMessageResult reason, void *context) { failed(reason, context); }
+static void outbox_failed(DictionaryIterator *iter, AppMessageResult reason, void *context) {
+  if (!detail_outbox_failed()) failed(reason, context);
+}
 
 // ---- input ----------------------------------------------------------------------------
 
-static void select_click(ClickRecognizerRef recognizer, void *context) { request(COMMAND_REFRESH); }
+// Select opens the trip overview of the journey on screen. The board refreshes itself every
+// minute, so Select only refreshes when there is nothing to show yet (or the board is a cached
+// one from an earlier session, for which the phone has no details).
+static void select_click(ClickRecognizerRef recognizer, void *context) {
+  if (s_board.count && s_board_token) detail_push(s_selected, s_board_token);
+  else request(COMMAND_REFRESH);
+}
 static void reverse_click(ClickRecognizerRef recognizer, void *context) {
   char from[STATION_NAME_MAX], to[STATION_NAME_MAX];
   snprintf(from, sizeof(from), "%s", s_from);

@@ -37,7 +37,10 @@
             "Canceled",
             "Updated",
             "Status",
-            "Via"
+            "Via",
+            "Leg",
+            "ToPlatform",
+            "Stops"
         ],
         "projectType": "native",
         "resources": {

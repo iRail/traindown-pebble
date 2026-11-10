@@ -45,12 +45,18 @@ Stations can be changed on the watch itself. The settings page in the mobile app
 | Button | Action |
 | --- | --- |
 | Up / Down | Previous / next journey |
-| Select | Refresh |
+| Select | Trip overview of the journey on screen (see below). Refreshes instead when there is no board yet |
 | Hold Select | Reverse and save the route, then refresh |
 | Hold Up | Change the departure station (the top of the screen) |
 | Hold Down | Change the destination station (the bottom of the screen) |
 | Tap the top / bottom | Same, on the Pebble Time 2 touchscreen |
 | Back | Exit |
+
+### Trip overview
+
+Select opens every train of the journey on the same metro-style rail: where you board with the platform and train, each stop in between with its expected time, and for every change the arrival time and platform, how many minutes you have to change (red below 5, or "Missed connection"), and the next train with its departure time and platform. Delays are included in the times and shown in red on the boarding station. Up/Down scroll and Back returns.
+
+The watch only keeps the headline numbers of the six journeys, so it asks the phone for the one you open (Command 4); the phone keeps the trains and stops of its last three boards for this and answers with Kind 4-7 messages (Kind 8 when the board has expired). Up to 6 trains and 40 stops per train are shown. The board refreshes itself every minute, so there is no manual refresh while a board is showing; Select still retries when there is none, and for a cached board from an earlier session (the phone has no details for it).
 
 ### Choosing a station
 
@@ -75,4 +81,4 @@ To exercise the actual bundled companion in Chromium against the live iRail CDN,
 npm run test:browser
 ```
 
-This test simulates the Pebble bridge, opens the bundled settings, saves a route, computes real journeys inside the browser, and checks the resulting watch messages. It reports initial and repeat query timing and download volume in `build/browser-smoke.json`. It does not replace testing the Android app, configuration webview and Bluetooth connection on your phone and watch. Watch layouts and the station picker can be checked in the Flint and Emery emulators; the picker runs entirely on the watch, so `pebble emu-button` works (use `push`, wait, `release` for a long press). The emulator's phone runtime cannot run the planner, so send sample AppMessages to see journeys (the new `Via` key carries the layover names). Touch input is only available on the Time 2 and has not been tried in the emulator.
+This test simulates the Pebble bridge, opens the bundled settings, saves a route, computes real journeys inside the browser, and checks the resulting watch messages. It reports initial and repeat query timing and download volume in `build/browser-smoke.json`. It does not replace testing the Android app, configuration webview and Bluetooth connection on your phone and watch. Watch layouts and the station picker can be checked in the Flint and Emery emulators; the picker runs entirely on the watch, so `pebble emu-button` works (use `push`, wait, `release` for a long press). The emulator's phone runtime cannot run the planner, so send sample AppMessages to see journeys (the `Via` key carries the layover names; for the trip overview, press Select and then send Kind 4 to 7 messages with the board's Token and Index). Touch input is only available on the Time 2 and has not been tried in the emulator.
