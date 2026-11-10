@@ -446,6 +446,8 @@ int main(void) {
   app_message_open(1024, 192);
   connection_service_subscribe((ConnectionHandlers) { .pebble_app_connection_handler = connection_changed });
   tick_timer_service_subscribe(SECOND_UNIT, tick);
+  // Without this the Time 2 does not let a finger scroll the station list.
+  app_touch_navigation_enable(true);
   touch_service_subscribe(touch, NULL);
   window_stack_push(s_window, true);
   app_event_loop();
