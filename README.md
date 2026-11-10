@@ -16,6 +16,10 @@ A train countdown app inspired by [iRail Traindown](https://github.com/iRail/fit
 
 Times on the watch follow the watch's timezone. Set it to Belgium's timezone for Belgian local train times. Delays are included once in expected times; the extra `+N min` label describes that same delay. A platform shown as `?` is unknown. Cached results do not receive further delay or cancellation updates without a connection.
 
+![A train on time, then delayed by 4 minutes, then canceled, on the Pebble Time 2](docs/delayed-then-canceled.gif)
+
+*The Pebble Time 2 emulator with sample data: a train on time, then delayed by 4 minutes (the countdown includes the delay), then canceled. The line and text turn red.*
+
 ## Phone requirements
 
 Use the current official Pebble Android app and an up-to-date Android System WebView. Its PebbleKit JS runtime is a Chromium WebView. The browser bundle targets Chromium 100+ and uses modern JavaScript, typed arrays, `fetch`, `AbortController`, `Intl`, and the browser build of Apache Arrow. The planner's main entry runs without Web Workers or Node.js APIs.
