@@ -1,33 +1,63 @@
 {
-    "author": "moddable.tech",
+    "author": "Pieter",
     "dependencies": {
-        "@irail/planner": "^0.1.3"
+        "@irail/planner": "0.1.3",
+        "@rebble/clay": "^1.0.0"
     },
     "keywords": [
         "pebble-app"
     ],
-    "name": "pdc-sequence",
+    "name": "pebble-traindown",
+    "private": true,
+    "scripts": {
+        "test": "node --test test/*.test.*",
+        "test:browser": "node scripts/smoke-phone.mjs"
+    },
+    "engines": {
+        "node": ">=22.12.0"
+    },
     "pebble": {
-        "displayName": "pdc-sequence",
-        "enableMultiJS": true,
+        "displayName": "Traindown",
+        "enableMultiJS": false,
         "manifestVersion": 2,
         "messageKeys": [
-            "dummy"
+            "Command",
+            "Kind",
+            "Token",
+            "Count",
+            "Index",
+            "From",
+            "To",
+            "Departure",
+            "Arrival",
+            "Delay",
+            "Platform",
+            "Train",
+            "Transfers",
+            "Canceled",
+            "Updated",
+            "Status"
         ],
-        "projectType": "moddable",
+        "projectType": "native",
         "resources": {
             "media": []
         },
         "sdkVersion": "3",
         "targetPlatforms": [
-            "gabbro",
+            "flint",
             "emery"
         ],
-        "usesPermissions": [],
+        "usesPermissions": [
+            "configurable"
+        ],
         "uuid": "75b2f924-fa08-44a7-bd4b-21bfb25d2851",
         "watchapp": {
             "watchface": false
         }
     },
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "devDependencies": {
+        "esbuild": "^0.28.2",
+        "playwright-core": "^1.65.0"
+    }
 }
