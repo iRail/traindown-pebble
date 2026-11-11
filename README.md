@@ -16,9 +16,32 @@ A train countdown app inspired by [iRail Traindown](https://github.com/iRail/fit
 
 Times on the watch follow the watch's timezone. Set it to Belgium's timezone for Belgian local train times. Delays are included once in expected times; the extra `+N min` label describes that same delay. A platform shown as `?` is unknown. Cached results do not receive further delay or cancellation updates without a connection.
 
-![A train on time, then delayed by 4 minutes, then canceled, on the Pebble Time 2](docs/delayed-then-canceled.gif)
+## In action
 
-*The Pebble Time 2 emulator with sample data: a train on time, then delayed by 4 minutes (the countdown includes the delay), then canceled. The line and text turn red.*
+Recorded in the Pebble Time 2 and Pebble 2 Duo emulators. The phone is simulated: the same messages the phone companion sends are fed to the watch, so the train data is sample data. Times are the clock of the machine that recorded them.
+
+<table>
+  <tr>
+    <th></th>
+    <th>Pebble Time 2 (Emery)</th>
+    <th>Pebble 2 Duo (Flint)</th>
+  </tr>
+  <tr>
+    <td><b>A train that is delayed by 4 minutes, then canceled.</b> The countdown includes the delay, and the line and text turn red.</td>
+    <td><img src="docs/emery-delayed-canceled.gif" width="300" alt="Pebble Time 2: a train on time, then delayed by 4 minutes, then canceled"></td>
+    <td><img src="docs/flint-delayed-canceled.gif" width="216" alt="Pebble 2 Duo: a train on time, then delayed by 4 minutes, then canceled"></td>
+  </tr>
+  <tr>
+    <td><b>Changing the destination.</b> Hold Down (on the Time 2 you can also tap the bottom), then zoom in: B, Br, Bru, Brugge.</td>
+    <td><img src="docs/emery-choose-station.gif" width="300" alt="Pebble Time 2: choosing Brugge as destination in the station picker"></td>
+    <td><img src="docs/flint-choose-station.gif" width="216" alt="Pebble 2 Duo: choosing Brugge as destination in the station picker"></td>
+  </tr>
+  <tr>
+    <td><b>A trip with a change.</b> Select opens every train, the stops in between and the time to change; here a delay leaves only 2 minutes.</td>
+    <td><img src="docs/emery-transfer.gif" width="300" alt="Pebble Time 2: the trip overview of a journey with a change at Brussel-Noord"></td>
+    <td><img src="docs/flint-transfer.gif" width="216" alt="Pebble 2 Duo: the trip overview of a journey with a change at Brussel-Noord"></td>
+  </tr>
+</table>
 
 ## Phone requirements
 

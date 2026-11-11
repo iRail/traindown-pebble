@@ -168,7 +168,8 @@ static void render(Layer *layer, GContext *ctx) {
   draw_fit(ctx, line, large ? FONT_KEY_GOTHIC_28_BOLD : FONT_KEY_GOTHIC_24_BOLD,
            large ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD,
            GRect(L.text_x, L.count_y, L.text_w, L.count_h), GTextAlignmentLeft);
-  if (train->canceled) snprintf(line, sizeof(line), "Choose another journey");
+  // The small screen has room for fewer characters.
+  if (train->canceled) snprintf(line, sizeof(line), large ? "Choose another journey" : "Pick another");
   else if (train->delay > 0) snprintf(line, sizeof(line), "+%ld min late", (long)((train->delay + 59) / 60));
   else snprintf(line, sizeof(line), "On time");
   draw_text(ctx, line, large ? FONT_KEY_GOTHIC_18_BOLD : FONT_KEY_GOTHIC_14_BOLD,
