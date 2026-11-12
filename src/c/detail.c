@@ -120,7 +120,8 @@ static int item(const Detail *d, const Metrics *m, GContext *ctx, ItemKind kind,
        m->text_x, y - (d->large ? 4 : 3), m->text_w, m->line1 + 6, GColorBlack);
   int line_y = y + m->line1;
   if (kind == ItemBoard) {
-    clock_text(leg->departure, clock, sizeof(clock));
+    // Planned time first (the train you are taking), then how late it is.
+    clock_text(leg->departure - leg->delay, clock, sizeof(clock));
     if (leg->delay > 0) snprintf(line, sizeof(line), "%s (+%ld min)  Pl %s", clock, (long)((leg->delay + 59) / 60), leg->platform);
     else snprintf(line, sizeof(line), "%s  Pl %s", clock, leg->platform);
     text(ctx, line, m->font, m->text_x, line_y, m->text_w, m->line + 4, leg->delay > 0 ? late : GColorBlack);

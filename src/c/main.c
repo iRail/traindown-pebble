@@ -72,6 +72,14 @@ static void countdown_text(int32_t remaining, char *buffer, size_t size) {
   else snprintf(buffer, size, "%lds", seconds);
 }
 
+// A delay in seconds as "4 min" or, from an hour up, "1h 05m". Rounded up to whole minutes.
+static void delay_text(int32_t delay, char *buffer, size_t size) {
+  long minutes = (delay + 59) / 60;
+  if (minutes < 60) snprintf(buffer, size, "%ld min", minutes);
+  else if (minutes % 60) snprintf(buffer, size, "%ldh %02ldm", minutes / 60, minutes % 60);
+  else snprintf(buffer, size, "%ldh", minutes / 60);
+}
+
 // Metro line from the departure station down to the destination, with a ring for each layover.
 static void draw_map(GContext *ctx, int x, int top, int bottom, int layovers, bool large, GColor color) {
   const int end_radius = large ? 7 : 5, ring_radius = large ? 5 : 4;
@@ -153,17 +161,23 @@ static void render(Layer *layer, GContext *ctx) {
 
   int32_t remaining = (int32_t)train->departure - (int32_t)time(NULL);
   char departure[8], arrival[8];
-  clock_text(train->departure, departure, sizeof(departure));
+  // The top shows the planned time (the train you are taking); the delay is shown below.
+  clock_text(train->departure - train->delay, departure, sizeof(departure));
   clock_text(train->arrival, arrival, sizeof(arrival));
   snprintf(line, sizeof(line), large ? "%s  Platform %s" : "%s  Pl. %s", departure, train->platform);
   draw_text(ctx, line, detail_font, GRect(L.text_x, L.from_detail_y, L.text_w, large ? 22 : 18), GTextAlignmentLeft);
   draw_text(ctx, arrival, detail_font, GRect(L.text_x, L.to_detail_y, L.text_w, large ? 22 : 18), GTextAlignmentLeft);
 
   graphics_context_set_text_color(ctx, state_color);
-  // The countdown runs to the expected departure, so say so when that is later than planned.
-  const char *label = train->canceled ? "JOURNEY"
-                    : train->delay > 0 ? (large ? "DELAYED, DEPARTS IN" : "LATE, DEPARTS IN")
-                    : "DEPARTS IN";
+  // The countdown runs to the expected departure, so a delayed train says by how much it is late.
+  char label[32] = "DEPARTS IN";
+  if (train->canceled) snprintf(label, sizeof(label), "JOURNEY");
+  else if (train->delay > 0) {
+    char amount[16];
+    delay_text(train->delay, amount, sizeof(amount));
+    snprintf(label, sizeof(label), "DELAYED %s", amount);
+    for (char *c = label; *c; c++) if (*c >= 'a' && *c <= 'z') *c -= 'a' - 'A';
+  }
   draw_text(ctx, label, FONT_KEY_GOTHIC_14_BOLD, GRect(L.text_x, L.label_y, L.text_w, 18), GTextAlignmentLeft);
   if (train->canceled) snprintf(line, sizeof(line), "CANCELED");
   else if (remaining < 0) snprintf(line, sizeof(line), "Departed");
@@ -173,7 +187,11 @@ static void render(Layer *layer, GContext *ctx) {
            GRect(L.text_x, L.count_y, L.text_w, L.count_h), GTextAlignmentLeft);
   // The small screen has room for fewer characters.
   if (train->canceled) snprintf(line, sizeof(line), large ? "Choose another journey" : "Pick another");
-  else if (train->delay > 0) snprintf(line, sizeof(line), "+%ld min late", (long)((train->delay + 59) / 60));
+  else if (train->delay > 0) {
+    char expected[8];
+    clock_text(train->departure, expected, sizeof(expected));
+    snprintf(line, sizeof(line), "Leaves at %s", expected);
+  }
   else snprintf(line, sizeof(line), "On time");
   draw_text(ctx, line, large ? FONT_KEY_GOTHIC_18_BOLD : FONT_KEY_GOTHIC_14_BOLD,
             GRect(L.text_x, L.status_y, L.text_w, large ? 22 : 16), GTextAlignmentLeft);
