@@ -35,17 +35,24 @@ save() {    # save <name>
   echo "docs/$P-$1.gif ($(identify docs/store/$P-$1.gif | wc -l) frames)"
 }
 
+# The watch asks the (simulated, silent) phone for a refresh at every full minute and then shows
+# "Updating" until the next board arrives, so start each recording well after the minute tick.
+quiet() { local s; while s=$((10#$(date +%S))); (( s < 3 || s > 30 )); do sleep 1; done; }
+
 pebble build >/dev/null
+# Start from a clean emulator: it remembers recently chosen stations, which would add rows to the picker.
+# (`pebble wipe` clears the stored data of all emulators.)
+pebble kill >/dev/null 2>&1 || true; pebble wipe >/dev/null 2>&1 || true
 pebble install --emulator "$P" >/dev/null 2>&1; sleep 4
 
 # 1. A train on time, then delayed by 4 minutes, then canceled.
-reset; TOKEN=1 feed board; shot 110; shot 80; shot 80
+reset; quiet; TOKEN=1 feed board; shot 110; shot 80; shot 80
 TOKEN=2 feed delayed; shot 130; shot 80; shot 80
 TOKEN=3 feed canceled; shot 80; shot 80; shot 300
 save delayed-canceled
 
 # 2. Choosing Brugge as destination.
-reset; TOKEN=4 feed board; shot 130
+reset; quiet; TOKEN=4 feed board; shot 130
 press --duration 800 click down; shot 80                    # hold Down: the picker for the destination
 for i in 1 2 3; do press click down; shot 55; done          # recent -> 's -> A -> B
 press click select; shot 55                                 # B...: Ba, Be, Bi, Bl, Bo, Br
@@ -59,7 +66,7 @@ TOKEN=5 TO=Brugge feed board; shot 120; shot 300
 save choose-station
 
 # 3. A trip with a change.
-reset; TOKEN=6 TO=Leuven feed transfer; shot 140; shot 80
+reset; quiet; TOKEN=6 TO=Leuven feed transfer; shot 140; shot 80
 press click select; sleep 0.5
 TOKEN=6 TO=Leuven feed details; shot 100
 for i in 1 2 3 4 5 6; do press click down; shot $([[ $i == 6 ]] && echo 300 || echo 70); done
