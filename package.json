@@ -65,7 +65,7 @@
             "watchface": false
         }
     },
-    "version": "1.0.0",
+    "version": "1.1.0",
     "devDependencies": {
         "esbuild": "^0.28.2",
         "playwright-core": "^1.65.0"
