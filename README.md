@@ -10,7 +10,9 @@ A train countdown app inspired by [iRail Traindown](https://github.com/iRail/fit
 - The departure station is shown at the top and the destination at the bottom, joined by a metro-style line on the right with a ring for each station you change at.
 - Browse the next six journeys, including canceled journeys.
 - Live countdown to departure as `5h 13m 30s`, expected departure and arrival, first platform, delay and the layover stations.
-- Refresh on opening and every minute while the watch app is running.
+- Refresh on opening and every minute while the watch app is running, and again when the countdown of the selected train ends (so a late delay shows up immediately). A refresh keeps the journey you are following selected instead of jumping back to the first one.
+- A delayed train is labelled **DELAYED, DEPARTS IN**: the countdown runs to the expected, delayed departure.
+- The watch buzzes when the selected journey changes: a long vibration when it is canceled, a short one when its delay changes.
 - Persistent last-successful results, marked **Cached** after a failed refresh, disconnection, or two minutes without fresh data.
 - Atomic Bluetooth updates: an incomplete transfer leaves the previous board intact.
 

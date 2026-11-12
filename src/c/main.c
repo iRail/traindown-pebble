@@ -160,8 +160,11 @@ static void render(Layer *layer, GContext *ctx) {
   draw_text(ctx, arrival, detail_font, GRect(L.text_x, L.to_detail_y, L.text_w, large ? 22 : 18), GTextAlignmentLeft);
 
   graphics_context_set_text_color(ctx, state_color);
-  draw_text(ctx, train->canceled ? "JOURNEY" : "DEPARTS IN", FONT_KEY_GOTHIC_14_BOLD,
-            GRect(L.text_x, L.label_y, L.text_w, 18), GTextAlignmentLeft);
+  // The countdown runs to the expected departure, so say so when that is later than planned.
+  const char *label = train->canceled ? "JOURNEY"
+                    : train->delay > 0 ? (large ? "DELAYED, DEPARTS IN" : "LATE, DEPARTS IN")
+                    : "DEPARTS IN";
+  draw_text(ctx, label, FONT_KEY_GOTHIC_14_BOLD, GRect(L.text_x, L.label_y, L.text_w, 18), GTextAlignmentLeft);
   if (train->canceled) snprintf(line, sizeof(line), "CANCELED");
   else if (remaining < 0) snprintf(line, sizeof(line), "Departed");
   else countdown_text(remaining, line, sizeof(line));
@@ -273,6 +276,18 @@ static int32_t number(DictionaryIterator *iter, uint32_t key) {
   return tuple ? tuple->value->int32 : 0;
 }
 
+// A journey keeps its planned departure and train when its delay changes, so those identify it
+// across refreshes (the expected departure moves with the delay).
+static bool same_journey(const Train *a, const Train *b) {
+  return (int32_t)a->departure - a->delay == (int32_t)b->departure - b->delay && strcmp(a->train, b->train) == 0;
+}
+
+// Buzzes when the journey the user follows was canceled (long) or its delay changed (short).
+static void buzz_on_change(const Train *before, const Train *after) {
+  if (!before->canceled && after->canceled) vibes_long_pulse();
+  else if (!after->canceled && before->delay != after->delay) vibes_short_pulse();
+}
+
 static void inbox(DictionaryIterator *iter, void *context) {
   s_ready = true;
   int kind = number(iter, MESSAGE_KEY_Kind);
@@ -319,6 +334,11 @@ static void inbox(DictionaryIterator *iter, void *context) {
     s_received |= 1 << index;
   } else if (kind == 3 && s_loading && number(iter, MESSAGE_KEY_Token) == s_token &&
              s_received == (1 << s_pending.count) - 1) {
+    // A refresh of the same route must not move the user off the journey they are following.
+    const bool follow = s_board.count > 0 && s_selected < s_board.count &&
+                        strcmp(s_board.from, s_pending.from) == 0 && strcmp(s_board.to, s_pending.to) == 0;
+    const bool live = s_board_token != 0;  // the old board came from the phone, not from the cache
+    const Train followed = follow ? s_trains[s_selected] : (Train) { 0 };
     s_board = s_pending;
     memcpy(s_trains, s_rows, sizeof(s_trains));
     snprintf(s_from, sizeof(s_from), "%s", s_board.from);
@@ -326,6 +346,12 @@ static void inbox(DictionaryIterator *iter, void *context) {
     s_route_pending = false;
     s_board_token = s_token;
     s_selected = 0;
+    for (int i = 0; follow && i < s_board.count; i++) {
+      if (!same_journey(&followed, &s_trains[i])) continue;
+      s_selected = i;
+      if (live) buzz_on_change(&followed, &s_trains[i]);
+      break;
+    }
     s_loading = false;
     s_stale = false;
     snprintf(s_status, sizeof(s_status), "No upcoming trains\nSELECT to try again");
@@ -402,7 +428,11 @@ static void tick(struct tm *tick_time, TimeUnits units) {
   time_t now = time(NULL);
   if (s_loading && now - s_requested >= 60) failed(APP_MSG_SEND_TIMEOUT, NULL);
   if (s_board.updated && now - s_board.updated > 120) s_stale = true;
-  if (s_ready && !s_loading && tick_time->tm_sec == 0) request(COMMAND_REFRESH);
+  // Refresh every minute, and the moment the selected train's countdown ends: a delay that is
+  // announced at the last second then shows at once instead of "Departed" until the next minute.
+  const bool countdown_ended = s_board.count && s_selected < s_board.count &&
+                               (int32_t)s_trains[s_selected].departure == (int32_t)now;
+  if (s_ready && !s_loading && (tick_time->tm_sec == 0 || countdown_ended)) request(COMMAND_REFRESH);
   redraw();
 }
 
