@@ -44,7 +44,15 @@ typedef struct {
   const char *font1, *font, *font_stop;
 } Metrics;
 
+// Round screen: the rail sits further in and the text stops short of the curve; the trip starts and
+// ends with some blank scroll space so its first and last stations can reach the middle.
+#define EDGE PBL_IF_ROUND_ELSE(34, 6)
+
 static Metrics metrics(const Detail *d, int width) {
+#if defined(PBL_ROUND)
+  return (Metrics) { 26, 40, width - 40 - 24, 22, 18, 19, 6, 5, 2, 3, FONT_KEY_GOTHIC_18_BOLD, FONT_KEY_GOTHIC_14,
+                     FONT_KEY_GOTHIC_14 };
+#endif
   if (d->large) {
     return (Metrics) { 14, 32, width - 32 - 6, 28, 22, 24, 8, 7, 3, 4, FONT_KEY_GOTHIC_24_BOLD, FONT_KEY_GOTHIC_18,
                        FONT_KEY_GOTHIC_18 };
@@ -150,13 +158,13 @@ static int item(const Detail *d, const Metrics *m, GContext *ctx, ItemKind kind,
 // Lays out the whole trip top to bottom and returns its height; draws what is visible if `ctx` is set.
 static int walk(const Detail *d, GContext *ctx, int width, int visible_top, int visible_bottom) {
   const Metrics m = metrics(d, width);
-  int y = 6;
+  int y = EDGE;
   for (int i = 0; i < d->leg_count; i++) {
     y += item(d, &m, ctx, i == 0 ? ItemBoard : ItemTransfer, i, 0, y, visible_top, visible_bottom);
     for (int s = 0; s < d->legs[i].stop_count; s++) y += item(d, &m, ctx, ItemStop, i, s, y, visible_top, visible_bottom);
   }
   if (d->leg_count) y += item(d, &m, ctx, ItemArrive, d->leg_count - 1, 0, y, visible_top, visible_bottom);
-  return y + 6;
+  return y + EDGE;
 }
 
 static void content_update(Layer *layer, GContext *ctx) {
@@ -281,6 +289,15 @@ static void send_request(void) {
 
 // ---- touch --------------------------------------------------------------------------------
 
+// Pebble Time Round has no touch screen, and its SDK stubs the recognizer calls out.
+static int pan_delta_y(const Recognizer *recognizer) {
+#if defined(PBL_PLATFORM_CHALK)
+  return 0;
+#else
+  return pan_recognizer_get_delta_since_start(recognizer).y;
+#endif
+}
+
 // A bare ScrollLayer does not scroll by touch, so a vertical pan drives it (the SDK's own recipe).
 static void pan_handler(const Recognizer *recognizer, RecognizerEvent event) {
   Detail *d = s_detail;
@@ -288,7 +305,7 @@ static void pan_handler(const Recognizer *recognizer, RecognizerEvent event) {
   if (event == RecognizerEvent_Started) {
     s_pan_base = scroll_layer_get_content_offset(d->scroll).y;
   } else if (event == RecognizerEvent_Updated) {
-    int y = s_pan_base + pan_recognizer_get_delta_since_start(recognizer).y;
+    int y = s_pan_base + pan_delta_y(recognizer);
     const int lowest = layer_get_bounds(window_get_root_layer(d->window)).size.h - layer_get_frame(d->content).size.h;
     if (y < lowest) y = lowest;
     if (y > 0) y = 0;

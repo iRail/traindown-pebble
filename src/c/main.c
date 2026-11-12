@@ -106,14 +106,39 @@ typedef struct {
   int from_y, from_detail_y, to_y, to_detail_y;
   int dot_top, dot_bottom;
   int label_y, count_y, count_h, status_y, via_y;
+  bool round;  // Pebble Time Round: rows are fitted to the circle
 } Layout;
 
 static Layout layout_for(GRect bounds) {
+#if defined(PBL_ROUND)
+  // Round screen (180 x 180): the map runs down the left, the text sits right of it, and no row
+  // is wider than the circle allows at its height (see row()). The via line is folded into the
+  // arrival line to make room.
+  return (Layout) { false, 36, 108, 24, 160, 18, 38, 120, 140, 46, 146, 58, 72, 30, 102, 0, true };
+#endif
   const bool large = bounds.size.h >= 228;
   if (large) {
-    return (Layout) { true, 6, 170, bounds.size.w - 14, 206, 2, 30, 152, 180, 18, 168, 58, 76, 36, 112, 134 };
+    return (Layout) { true, 6, 170, bounds.size.w - 14, 206, 2, 30, 152, 180, 18, 168, 58, 76, 36, 112, 134, false };
   }
-  return (Layout) { false, 4, 122, bounds.size.w - 10, 150, 0, 21, 112, 133, 12, 124, 40, 54, 30, 82, 96 };
+  return (Layout) { false, 4, 122, bounds.size.w - 10, 150, 0, 21, 112, 133, 12, 124, 40, 54, 30, 82, 96, false };
+}
+
+// The area for text between y and y + h. On the round screen it is the chord of the circle at
+// that height, kept clear of the map on the left unless `centered` (the footer).
+static int isqrt(int n) {
+  int r = 0;
+  while ((r + 1) * (r + 1) <= n) r++;
+  return r;
+}
+
+static GRect row(const Layout *L, int y, int h, bool centered) {
+  if (!L->round) return GRect(L->text_x, y, L->text_w, h);
+  const int radius = PBL_DISPLAY_WIDTH / 2;
+  const int top = abs(y + 3 - radius), bottom = abs(y + h - 3 - radius);
+  const int far = top > bottom ? top : bottom;
+  const int inset = radius - (far >= radius ? 0 : isqrt(radius * radius - far * far)) + 3;
+  const int x = !centered && inset < L->text_x ? L->text_x : inset;
+  return GRect(x, y, PBL_DISPLAY_WIDTH - x - inset, h);
 }
 
 static Zone zone_at(int y) {
@@ -136,8 +161,8 @@ static void render(Layer *layer, GContext *ctx) {
   graphics_context_set_text_color(ctx, GColorBlack);
   char line[100];
 
-  draw_fit(ctx, s_from, name_big, name_small, GRect(L.text_x, L.from_y, L.text_w, large ? 28 : 22), GTextAlignmentLeft);
-  draw_fit(ctx, s_to, name_big, name_small, GRect(L.text_x, L.to_y, L.text_w, large ? 28 : 22), GTextAlignmentLeft);
+  draw_fit(ctx, s_from, name_big, name_small, row(&L, L.from_y, large ? 28 : 22, false), GTextAlignmentLeft);
+  draw_fit(ctx, s_to, name_big, name_small, row(&L, L.to_y, large ? 28 : 22, false), GTextAlignmentLeft);
 
   const bool has_board = s_board.count > 0;
   Train *train = has_board ? &s_trains[s_selected] : NULL;
@@ -153,9 +178,9 @@ static void render(Layer *layer, GContext *ctx) {
 
   if (!has_board) {
     draw_text(ctx, s_status, large ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD,
-              GRect(L.text_x, L.label_y + (large ? 10 : 4), L.text_w, large ? 64 : 50), GTextAlignmentLeft);
+              row(&L, L.round ? 38 : L.label_y + (large ? 10 : 4), large ? 64 : 50, false), GTextAlignmentLeft);
     draw_text(ctx, large ? "Tap top/bottom or hold\nUP/DOWN to change stations" : "Hold UP/DOWN to\nchange stations",
-              FONT_KEY_GOTHIC_14, GRect(L.text_x, large ? L.via_y - 20 : L.via_y - 6, L.text_w, 34), GTextAlignmentLeft);
+              FONT_KEY_GOTHIC_14, row(&L, L.round ? 84 : large ? L.via_y - 20 : L.via_y - 6, 34, false), GTextAlignmentLeft);
     return;
   }
 
@@ -165,8 +190,15 @@ static void render(Layer *layer, GContext *ctx) {
   clock_text(train->departure - train->delay, departure, sizeof(departure));
   clock_text(train->arrival, arrival, sizeof(arrival));
   snprintf(line, sizeof(line), large ? "%s  Platform %s" : "%s  Pl. %s", departure, train->platform);
-  draw_text(ctx, line, detail_font, GRect(L.text_x, L.from_detail_y, L.text_w, large ? 22 : 18), GTextAlignmentLeft);
-  draw_text(ctx, arrival, detail_font, GRect(L.text_x, L.to_detail_y, L.text_w, large ? 22 : 18), GTextAlignmentLeft);
+  draw_text(ctx, line, detail_font, row(&L, L.from_detail_y, large ? 22 : 18, false), GTextAlignmentLeft);
+  char via_line[64];
+  if (train->transfers && train->via[0]) snprintf(via_line, sizeof(via_line), "via %s", train->via);
+  else if (train->transfers) snprintf(via_line, sizeof(via_line), "%u change%s", train->transfers, train->transfers == 1 ? "" : "s");
+  else snprintf(via_line, sizeof(via_line), "%s / direct", train->train);
+  // The round screen has no room for a line of its own, so the route shares the arrival line.
+  if (L.round) snprintf(line, sizeof(line), "%s  %s", arrival, via_line);
+  else snprintf(line, sizeof(line), "%s", arrival);
+  draw_text(ctx, line, detail_font, row(&L, L.to_detail_y, large ? 22 : 18, false), GTextAlignmentLeft);
 
   graphics_context_set_text_color(ctx, state_color);
   // The countdown runs to the expected departure, so a delayed train says by how much it is late.
@@ -178,13 +210,13 @@ static void render(Layer *layer, GContext *ctx) {
     snprintf(label, sizeof(label), "DELAYED %s", amount);
     for (char *c = label; *c; c++) if (*c >= 'a' && *c <= 'z') *c -= 'a' - 'A';
   }
-  draw_text(ctx, label, FONT_KEY_GOTHIC_14_BOLD, GRect(L.text_x, L.label_y, L.text_w, 18), GTextAlignmentLeft);
+  draw_text(ctx, label, FONT_KEY_GOTHIC_14_BOLD, row(&L, L.label_y, 18, false), GTextAlignmentLeft);
   if (train->canceled) snprintf(line, sizeof(line), "CANCELED");
   else if (remaining < 0) snprintf(line, sizeof(line), "Departed");
   else countdown_text(remaining, line, sizeof(line));
   draw_fit(ctx, line, large ? FONT_KEY_GOTHIC_28_BOLD : FONT_KEY_GOTHIC_24_BOLD,
            large ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD,
-           GRect(L.text_x, L.count_y, L.text_w, L.count_h), GTextAlignmentLeft);
+           row(&L, L.count_y, L.count_h, false), GTextAlignmentLeft);
   // The small screen has room for fewer characters.
   if (train->canceled) snprintf(line, sizeof(line), large ? "Choose another journey" : "Pick another");
   else if (train->delay > 0) {
@@ -194,17 +226,21 @@ static void render(Layer *layer, GContext *ctx) {
   }
   else snprintf(line, sizeof(line), "On time");
   draw_text(ctx, line, large ? FONT_KEY_GOTHIC_18_BOLD : FONT_KEY_GOTHIC_14_BOLD,
-            GRect(L.text_x, L.status_y, L.text_w, large ? 22 : 16), GTextAlignmentLeft);
+            row(&L, L.status_y, large ? 22 : 16, false), GTextAlignmentLeft);
 
   graphics_context_set_text_color(ctx, GColorBlack);
-  if (train->transfers && train->via[0]) snprintf(line, sizeof(line), "via %s", train->via);
-  else if (train->transfers) snprintf(line, sizeof(line), "%u change%s", train->transfers, train->transfers == 1 ? "" : "s");
-  else snprintf(line, sizeof(line), "%s / direct", train->train);
-  draw_text(ctx, line, FONT_KEY_GOTHIC_14, GRect(L.text_x, L.via_y, L.text_w, 18), GTextAlignmentLeft);
+  if (!L.round) draw_text(ctx, via_line, FONT_KEY_GOTHIC_14, row(&L, L.via_y, 18, false), GTextAlignmentLeft);
 
-  graphics_draw_line(ctx, GPoint(0, L.footer_y), GPoint(width, L.footer_y));
   char updated[8];
   clock_text(s_board.updated, updated, sizeof(updated));
+  if (L.round) {
+    // Little room at the bottom of the circle: "2/6 15:47", or why that time is not to be trusted.
+    snprintf(line, sizeof(line), "%u/%u %s", s_selected + 1, s_board.count,
+             s_loading ? "..." : s_stale ? "Cached" : updated);
+    draw_text(ctx, line, FONT_KEY_GOTHIC_14, row(&L, L.footer_y, 16, true), GTextAlignmentCenter);
+    return;
+  }
+  graphics_draw_line(ctx, GPoint(0, L.footer_y), GPoint(width, L.footer_y));
   snprintf(line, sizeof(line), "%u/%u  %s%s", s_selected + 1, s_board.count,
            s_loading ? "Updating" : s_stale ? "Cached " : "Updated ", s_loading ? "" : updated);
   draw_text(ctx, line, FONT_KEY_GOTHIC_14, GRect(2, L.footer_y, width - 4, 18), GTextAlignmentCenter);

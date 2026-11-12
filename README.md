@@ -1,6 +1,6 @@
 # Traindown for Pebble 2 Duo and Pebble Time 2
 
-A train countdown app inspired by [iRail Traindown](https://github.com/iRail/fitbit-traindown) and NextTrain. One installable bundle supports both **Flint (Pebble 2 Duo, 144 × 168 monochrome)** and **Emery (Pebble Time 2, 200 × 228 color)**. The Time 2 uses a larger countdown and color indicators alongside the text labels for delays, cancellations and cached data.
+A train countdown app inspired by [iRail Traindown](https://github.com/iRail/fitbit-traindown) and NextTrain. One installable bundle supports **Flint (Pebble 2 Duo, 144 × 168 monochrome)**, **Emery (Pebble Time 2, 200 × 228 color)** and **Chalk (Pebble Time Round, 180 × 180 round color)**. The Time 2 uses a larger countdown and color indicators alongside the text labels for delays, cancellations and cached data. On the Time Round every row of text is fitted to the circle: the map runs down the left, the route shares the arrival line, and the journey number and update time sit in the narrow bottom.
 
 **Journey planning runs on your Android phone inside the Pebble app. No hosted backend or separate phone app is required.** The companion includes `@irail/planner` 0.1.3, downloads timetables and real-time updates directly from iRail's CDN, computes journeys locally, and sends compact results to the native C watch interface.
 
@@ -20,28 +20,32 @@ Times on the watch follow the watch's timezone. Set it to Belgium's timezone for
 
 ## In action
 
-Recorded in the Pebble Time 2 and Pebble 2 Duo emulators. The phone is simulated: the same messages the phone companion sends are fed to the watch, so the train data is sample data. Times are the clock of the machine that recorded them.
+Recorded in the Pebble Time 2, Pebble 2 Duo and Pebble Time Round emulators (`scripts/record-gifs.sh <platform>`; the corners outside the round screen are filled dark). The phone is simulated: the same messages the phone companion sends are fed to the watch, so the train data is sample data. Times are the clock of the machine that recorded them.
 
 <table>
   <tr>
     <th></th>
     <th>Pebble Time 2 (Emery)</th>
     <th>Pebble 2 Duo (Flint)</th>
+    <th>Pebble Time Round (Chalk)</th>
   </tr>
   <tr>
     <td><b>A train that is delayed by 4 minutes, then canceled.</b> The countdown includes the delay, and the line and text turn red.</td>
     <td><img src="docs/emery-delayed-canceled.gif" width="300" alt="Pebble Time 2: a train on time, then delayed by 4 minutes, then canceled"></td>
     <td><img src="docs/flint-delayed-canceled.gif" width="216" alt="Pebble 2 Duo: a train on time, then delayed by 4 minutes, then canceled"></td>
+    <td><img src="docs/chalk-delayed-canceled.gif" width="270" alt="Pebble Time Round: a train on time, then delayed by 4 minutes, then canceled"></td>
   </tr>
   <tr>
     <td><b>Changing the destination.</b> Hold Down (on the Time 2 you can also tap the bottom), then zoom in: B, Br, Bru, Brugge.</td>
     <td><img src="docs/emery-choose-station.gif" width="300" alt="Pebble Time 2: choosing Brugge as destination in the station picker"></td>
     <td><img src="docs/flint-choose-station.gif" width="216" alt="Pebble 2 Duo: choosing Brugge as destination in the station picker"></td>
+    <td><img src="docs/chalk-choose-station.gif" width="270" alt="Pebble Time Round: choosing Brugge as destination in the station picker"></td>
   </tr>
   <tr>
     <td><b>A trip with a change.</b> Select opens every train, the stops in between and the time to change; here a delay leaves only 2 minutes.</td>
     <td><img src="docs/emery-transfer.gif" width="300" alt="Pebble Time 2: the trip overview of a journey with a change at Brussel-Noord"></td>
     <td><img src="docs/flint-transfer.gif" width="216" alt="Pebble 2 Duo: the trip overview of a journey with a change at Brussel-Noord"></td>
+    <td><img src="docs/chalk-transfer.gif" width="270" alt="Pebble Time Round: the trip overview of a journey with a change at Brussel-Noord"></td>
   </tr>
 </table>
 
