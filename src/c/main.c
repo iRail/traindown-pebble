@@ -31,6 +31,8 @@ static uint8_t s_selected, s_received;
 static int32_t s_token;
 // Token of the board on screen when it came from the phone in this session; 0 for a cached board.
 static int32_t s_board_token;
+// Per journey on the board: its platform changed since the board was first seen (not persisted).
+static bool s_platform_changed[MAX_TRAINS];
 static bool s_loading, s_ready, s_stale = true;
 // True from picking a new route until the phone answers with a board for it.
 static bool s_route_pending;
@@ -59,6 +61,11 @@ static void draw_fit(GContext *ctx, const char *text, const char *big, const cha
   draw_text(ctx, text, size.w > rect.size.w ? small : big, rect, alignment);
 }
 
+static int text_width(const char *text, const char *font) {
+  return graphics_text_layout_get_content_size(text, fonts_get_system_font(font), GRect(0, 0, 500, 60),
+                                               GTextOverflowModeFill, GTextAlignmentLeft).w;
+}
+
 static void clock_text(uint32_t timestamp, char *buffer, size_t size) {
   time_t value = timestamp;
   strftime(buffer, size, "%H:%M", localtime(&value));
@@ -80,24 +87,6 @@ static void delay_text(int32_t delay, char *buffer, size_t size) {
   else snprintf(buffer, size, "%ldh", minutes / 60);
 }
 
-// Metro line from the departure station down to the destination, with a ring for each layover.
-static void draw_map(GContext *ctx, int x, int top, int bottom, int layovers, bool large, GColor color) {
-  const int end_radius = large ? 7 : 5, ring_radius = large ? 5 : 4;
-  graphics_context_set_stroke_color(ctx, color);
-  graphics_context_set_fill_color(ctx, color);
-  graphics_context_set_stroke_width(ctx, large ? 4 : 3);
-  graphics_draw_line(ctx, GPoint(x, top), GPoint(x, bottom));
-  graphics_fill_circle(ctx, GPoint(x, top), end_radius);
-  graphics_fill_circle(ctx, GPoint(x, bottom), end_radius);
-  graphics_context_set_stroke_width(ctx, 2);
-  for (int i = 1; i <= layovers; i++) {
-    GPoint centre = GPoint(x, top + (bottom - top) * i / (layovers + 1));
-    graphics_context_set_fill_color(ctx, GColorWhite);
-    graphics_fill_circle(ctx, centre, ring_radius);
-    graphics_draw_circle(ctx, centre, ring_radius);
-  }
-}
-
 // ---- layout ----------------------------------------------------------------------
 
 typedef struct {
@@ -106,21 +95,25 @@ typedef struct {
   int from_y, from_detail_y, to_y, to_detail_y;
   int dot_top, dot_bottom;
   int label_y, count_y, count_h, status_y, via_y;
-  bool round;  // Pebble Time Round: rows are fitted to the circle
+  bool round;  // round screens: rows are fitted to the circle
+  int arc;     // round screens: radius of the circle the map follows, centred on the screen
 } Layout;
 
 static Layout layout_for(GRect bounds) {
 #if defined(PBL_ROUND)
-  // Round screen (180 x 180): the map runs down the left, the text sits right of it, and no row
-  // is wider than the circle allows at its height (see row()). The via line is folded into the
-  // arrival line to make room.
-  return (Layout) { false, 36, 108, 24, 160, 18, 38, 120, 140, 46, 146, 58, 72, 30, 102, 0, true };
+  // Round screens: the map runs down the left, the text sits right of it, and no row is wider
+  // than the circle allows at its height (see row()). The via line is folded into the arrival
+  // line to make room.
+  if (bounds.size.w >= 240) {  // Pebble Round 2, 260 x 260: the large fonts of the Time 2
+    return (Layout) { true, 50, 160, 32, 220, 28, 58, 164, 192, 68, 203, 84, 100, 36, 138, 0, true, 118 };
+  }
+  return (Layout) { false, 36, 108, 24, 157, 18, 38, 120, 140, 46, 134, 58, 72, 30, 102, 0, true, 82 };  // Time Round, 180 x 180
 #endif
   const bool large = bounds.size.h >= 228;
   if (large) {
-    return (Layout) { true, 6, 170, bounds.size.w - 14, 206, 2, 30, 152, 180, 18, 168, 58, 76, 36, 112, 134, false };
+    return (Layout) { true, 30, 166, 12, 206, 2, 30, 152, 180, 18, 168, 58, 76, 36, 112, 134, false, 0 };
   }
-  return (Layout) { false, 4, 122, bounds.size.w - 10, 150, 0, 21, 112, 133, 12, 124, 40, 54, 30, 82, 96, false };
+  return (Layout) { false, 20, 121, 8, 150, 0, 21, 112, 133, 12, 124, 40, 54, 30, 82, 96, false, 0 };
 }
 
 // The area for text between y and y + h. On the round screen it is the chord of the circle at
@@ -141,11 +134,124 @@ static GRect row(const Layout *L, int y, int h, bool centered) {
   return GRect(x, y, PBL_DISPLAY_WIDTH - x - inset, h);
 }
 
+// Where the map is at height y: a straight line down the left, or on a round screen an arc of the
+// circle of radius L->arc that runs along the curve of the screen.
+static int map_x_at(const Layout *L, int y) {
+  if (!L->round) return L->map_x;
+  const int centre = PBL_DISPLAY_WIDTH / 2, dy = y - centre;
+  return centre - isqrt(L->arc * L->arc - dy * dy);
+}
+
+// Metro line from the departure station down to the destination, with a ring for each layover.
+static void draw_map(GContext *ctx, const Layout *L, int layovers, GColor color) {
+  const int top = L->dot_top, bottom = L->dot_bottom;
+  const int end_radius = L->large ? 7 : 5, ring_radius = L->large ? 5 : 4;
+  graphics_context_set_stroke_color(ctx, color);
+  graphics_context_set_fill_color(ctx, color);
+  graphics_context_set_stroke_width(ctx, L->large ? 4 : 3);
+  const int step = L->round ? 4 : bottom - top;  // short segments make the arc
+  for (int y = top; y < bottom; y += step) {
+    const int next = y + step < bottom ? y + step : bottom;
+    graphics_draw_line(ctx, GPoint(map_x_at(L, y), y), GPoint(map_x_at(L, next), next));
+  }
+  graphics_fill_circle(ctx, GPoint(map_x_at(L, top), top), end_radius);
+  graphics_fill_circle(ctx, GPoint(map_x_at(L, bottom), bottom), end_radius);
+  graphics_context_set_stroke_width(ctx, 2);
+  for (int i = 1; i <= layovers; i++) {
+    const int y = top + (bottom - top) * i / (layovers + 1);
+    GPoint centre = GPoint(map_x_at(L, y), y);
+    graphics_context_set_fill_color(ctx, GColorWhite);
+    graphics_fill_circle(ctx, centre, ring_radius);
+    graphics_draw_circle(ctx, centre, ring_radius);
+  }
+}
+
 static Zone zone_at(int y) {
   const Layout layout = layout_for(layer_get_bounds(s_layer));
   if (y < layout.label_y) return ZoneFrom;
   if (y >= layout.to_y - 2 && y < layout.footer_y) return ZoneTo;
   return ZoneNone;
+}
+
+// ---- footer: journey number, the time now and how far the data can be trusted --------------
+
+typedef enum { FeedLive, FeedUpdating, FeedCached, FeedOffline } Feed;
+
+static Feed feed_state(void) {
+  if (!connection_service_peek_pebble_app_connection()) return FeedOffline;
+  if (s_loading) return FeedUpdating;
+  return s_stale ? FeedCached : FeedLive;
+}
+
+static GColor feed_color(Feed state) {
+  switch (state) {
+    case FeedLive: return PBL_IF_COLOR_ELSE(GColorDarkGreen, GColorBlack);
+    case FeedUpdating: return PBL_IF_COLOR_ELSE(GColorDukeBlue, GColorBlack);
+    case FeedCached: return PBL_IF_COLOR_ELSE(GColorDarkGray, GColorBlack);
+    default: return PBL_IF_COLOR_ELSE(GColorDarkCandyAppleRed, GColorBlack);
+  }
+}
+
+// A 9 px symbol that also tells the states apart without color: a dot (live), a ring with a dot
+// running around it (updating), a square (cached, standing still) and a cross (no phone).
+static void draw_feed_symbol(GContext *ctx, GPoint c, Feed state, time_t now) {
+  graphics_context_set_stroke_color(ctx, feed_color(state));
+  graphics_context_set_fill_color(ctx, feed_color(state));
+  graphics_context_set_stroke_width(ctx, 1);
+  if (state == FeedLive) {
+    graphics_fill_circle(ctx, c, 4);
+  } else if (state == FeedUpdating) {
+    static const int8_t orbit[4][2] = { { 0, -4 }, { 4, 0 }, { 0, 4 }, { -4, 0 } };
+    graphics_draw_circle(ctx, c, 4);
+    graphics_fill_circle(ctx, GPoint(c.x + orbit[now % 4][0], c.y + orbit[now % 4][1]), 2);
+  } else if (state == FeedCached) {
+    graphics_fill_rect(ctx, GRect(c.x - 3, c.y - 3, 7, 7), 0, GCornerNone);
+  } else {
+    graphics_context_set_stroke_width(ctx, 2);
+    graphics_draw_line(ctx, GPoint(c.x - 3, c.y - 3), GPoint(c.x + 3, c.y + 3));
+    graphics_draw_line(ctx, GPoint(c.x - 3, c.y + 3), GPoint(c.x + 3, c.y - 3));
+  }
+}
+
+static void feed_word(Feed state, time_t now, char *buffer, size_t size) {
+  if (state == FeedCached) {
+    const long minutes = s_board.updated && now > (time_t)s_board.updated ? (now - s_board.updated) / 60 : 0;
+    if (minutes >= 60) snprintf(buffer, size, "Cached %ldh", minutes / 60);
+    else if (minutes >= 1) snprintf(buffer, size, "Cached %ldm", minutes);
+    else snprintf(buffer, size, "Cached");
+  } else {
+    snprintf(buffer, size, "%s", state == FeedLive ? "Live" : state == FeedUpdating ? "Updating" : "Offline");
+  }
+}
+
+// "1/2  22:07  ● Live", centered; where the screen is narrow (the Time Round) only the symbol is shown.
+static void draw_footer(GContext *ctx, const Layout *L, int width) {
+  const time_t now = time(NULL);
+  const Feed state = feed_state();
+  const bool words = !L->round || L->large;
+  const char *font = FONT_KEY_GOTHIC_14, *bold = FONT_KEY_GOTHIC_14_BOLD;
+  char index[8], clock[8], word[24] = "";
+  snprintf(index, sizeof(index), "%u/%u", s_selected + 1, s_board.count);
+  clock_text(now, clock, sizeof(clock));
+  if (words) feed_word(state, now, word, sizeof(word));
+  const int gap = 8, symbol = 9, label_gap = 4;
+  const int index_w = text_width(index, font), clock_w = text_width(clock, bold), word_w = words ? text_width(word, font) : 0;
+  const int total = index_w + gap + clock_w + gap + symbol + (words ? label_gap + word_w : 0);
+  const GRect area = L->round ? row(L, L->footer_y, 16, true) : GRect(0, L->footer_y, width, 18);
+  int x = area.origin.x + (area.size.w - total) / 2;
+  if (x < area.origin.x) x = area.origin.x;
+  const int y = area.origin.y;
+
+  graphics_context_set_text_color(ctx, GColorBlack);
+  draw_text(ctx, index, font, GRect(x, y, index_w + 6, 18), GTextAlignmentLeft);
+  x += index_w + gap;
+  draw_text(ctx, clock, bold, GRect(x, y, clock_w + 6, 18), GTextAlignmentLeft);
+  x += clock_w + gap;
+  draw_feed_symbol(ctx, GPoint(x + symbol / 2, y + 9), state, now);
+  if (words) {
+    graphics_context_set_text_color(ctx, feed_color(state));
+    draw_text(ctx, word, font, GRect(x + symbol + label_gap, y, word_w + 6, 18), GTextAlignmentLeft);
+  }
 }
 
 static void render(Layer *layer, GContext *ctx) {
@@ -173,14 +279,13 @@ static void render(Layer *layer, GContext *ctx) {
   }
   if (!has_board || s_stale) line_color = PBL_IF_COLOR_ELSE(GColorDarkGray, GColorBlack);
   if (has_board && s_stale) state_color = PBL_IF_COLOR_ELSE(GColorDarkGray, GColorBlack);
-  draw_map(ctx, L.map_x, L.dot_top, L.dot_bottom, train ? (train->transfers > MAX_LAYOVERS ? MAX_LAYOVERS : train->transfers) : 0,
-           large, line_color);
+  draw_map(ctx, &L, train ? (train->transfers > MAX_LAYOVERS ? MAX_LAYOVERS : train->transfers) : 0, line_color);
 
   if (!has_board) {
     draw_text(ctx, s_status, large ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD,
-              row(&L, L.round ? 38 : L.label_y + (large ? 10 : 4), large ? 64 : 50, false), GTextAlignmentLeft);
+              row(&L, L.round ? L.from_detail_y : L.label_y + (large ? 10 : 4), large ? 64 : 50, false), GTextAlignmentLeft);
     draw_text(ctx, large ? "Tap top/bottom or hold\nUP/DOWN to change stations" : "Hold UP/DOWN to\nchange stations",
-              FONT_KEY_GOTHIC_14, row(&L, L.round ? 84 : large ? L.via_y - 20 : L.via_y - 6, 34, false), GTextAlignmentLeft);
+              FONT_KEY_GOTHIC_14, row(&L, L.round ? L.from_detail_y + (large ? 66 : 46) : large ? L.via_y - 20 : L.via_y - 6, 34, false), GTextAlignmentLeft);
     return;
   }
 
@@ -190,7 +295,26 @@ static void render(Layer *layer, GContext *ctx) {
   clock_text(train->departure - train->delay, departure, sizeof(departure));
   clock_text(train->arrival, arrival, sizeof(arrival));
   snprintf(line, sizeof(line), large ? "%s  Platform %s" : "%s  Pl. %s", departure, train->platform);
-  draw_text(ctx, line, detail_font, row(&L, L.from_detail_y, large ? 22 : 18, false), GTextAlignmentLeft);
+  const GRect departure_area = row(&L, L.from_detail_y, large ? 22 : 18, false);
+  if (s_platform_changed[s_selected]) {
+    // The platform changed: it is drawn bold on an accent colored box (black on a black and white watch).
+    const char *bold_font = large ? FONT_KEY_GOTHIC_18_BOLD : FONT_KEY_GOTHIC_14_BOLD;
+    char platform[24];
+    snprintf(platform, sizeof(platform), large ? "Platform %s" : "Pl. %s", train->platform);
+    snprintf(line, sizeof(line), "%s  x", departure);
+    const int offset = text_width(line, detail_font) - text_width("x", detail_font);
+    const GRect platform_area = GRect(departure_area.origin.x + offset, departure_area.origin.y,
+                                      departure_area.size.w - offset, departure_area.size.h);
+    draw_text(ctx, departure, detail_font, departure_area, GTextAlignmentLeft);
+    graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorOrange, GColorBlack));
+    graphics_fill_rect(ctx, GRect(platform_area.origin.x - 2, platform_area.origin.y + (large ? 3 : 2),
+                                  text_width(platform, bold_font) + 4, large ? 19 : 15), 0, GCornerNone);
+    graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorBlack, GColorWhite));
+    draw_text(ctx, platform, bold_font, platform_area, GTextAlignmentLeft);
+    graphics_context_set_text_color(ctx, GColorBlack);
+  } else {
+    draw_text(ctx, line, detail_font, departure_area, GTextAlignmentLeft);
+  }
   char via_line[64];
   if (train->transfers && train->via[0]) snprintf(via_line, sizeof(via_line), "via %s", train->via);
   else if (train->transfers) snprintf(via_line, sizeof(via_line), "%u change%s", train->transfers, train->transfers == 1 ? "" : "s");
@@ -231,19 +355,8 @@ static void render(Layer *layer, GContext *ctx) {
   graphics_context_set_text_color(ctx, GColorBlack);
   if (!L.round) draw_text(ctx, via_line, FONT_KEY_GOTHIC_14, row(&L, L.via_y, 18, false), GTextAlignmentLeft);
 
-  char updated[8];
-  clock_text(s_board.updated, updated, sizeof(updated));
-  if (L.round) {
-    // Little room at the bottom of the circle: "2/6 15:47", or why that time is not to be trusted.
-    snprintf(line, sizeof(line), "%u/%u %s", s_selected + 1, s_board.count,
-             s_loading ? "..." : s_stale ? "Cached" : updated);
-    draw_text(ctx, line, FONT_KEY_GOTHIC_14, row(&L, L.footer_y, 16, true), GTextAlignmentCenter);
-    return;
-  }
-  graphics_draw_line(ctx, GPoint(0, L.footer_y), GPoint(width, L.footer_y));
-  snprintf(line, sizeof(line), "%u/%u  %s%s", s_selected + 1, s_board.count,
-           s_loading ? "Updating" : s_stale ? "Cached " : "Updated ", s_loading ? "" : updated);
-  draw_text(ctx, line, FONT_KEY_GOTHIC_14, GRect(2, L.footer_y, width - 4, 18), GTextAlignmentCenter);
+  if (!L.round) graphics_draw_line(ctx, GPoint(0, L.footer_y), GPoint(width, L.footer_y));
+  draw_footer(ctx, &L, width);
 }
 
 static void redraw(void) { if (s_layer) layer_mark_dirty(s_layer); }
@@ -289,6 +402,7 @@ static void set_route(const char *from, const char *to) {
   snprintf(s_to, sizeof(s_to), "%s", to);
   // The old board belongs to the old route; drop it until the phone answers.
   memset(&s_board, 0, sizeof(s_board));
+  memset(s_platform_changed, 0, sizeof(s_platform_changed));
   s_board_token = 0;
   persist_delete(CACHE_META);
   s_selected = 0;
@@ -336,9 +450,17 @@ static bool same_journey(const Train *a, const Train *b) {
   return (int32_t)a->departure - a->delay == (int32_t)b->departure - b->delay && strcmp(a->train, b->train) == 0;
 }
 
-// Buzzes when the journey the user follows was canceled (long) or its delay changed (short).
+// "?" means the platform is not known (yet), which is not a change.
+static bool platform_known(const char *platform) { return platform[0] && strcmp(platform, "?") != 0; }
+static bool platform_moved(const Train *before, const Train *after) {
+  return platform_known(before->platform) && platform_known(after->platform) && strcmp(before->platform, after->platform) != 0;
+}
+
+// Buzzes when the journey the user follows was canceled (long), moved to another platform (two
+// pulses) or its delay changed (short).
 static void buzz_on_change(const Train *before, const Train *after) {
   if (!before->canceled && after->canceled) vibes_long_pulse();
+  else if (!after->canceled && platform_moved(before, after)) vibes_double_pulse();
   else if (!after->canceled && before->delay != after->delay) vibes_short_pulse();
 }
 
@@ -393,6 +515,14 @@ static void inbox(DictionaryIterator *iter, void *context) {
                         strcmp(s_board.from, s_pending.from) == 0 && strcmp(s_board.to, s_pending.to) == 0;
     const bool live = s_board_token != 0;  // the old board came from the phone, not from the cache
     const Train followed = follow ? s_trains[s_selected] : (Train) { 0 };
+    // The journeys of the old board, to find out which platforms changed.
+    const bool same_route = s_board.count > 0 && strcmp(s_board.from, s_pending.from) == 0 &&
+                            strcmp(s_board.to, s_pending.to) == 0;
+    const int previous_count = same_route ? s_board.count : 0;
+    Train previous[MAX_TRAINS];
+    bool previous_changed[MAX_TRAINS];
+    memcpy(previous, s_trains, sizeof(previous));
+    memcpy(previous_changed, s_platform_changed, sizeof(previous_changed));
     s_board = s_pending;
     memcpy(s_trains, s_rows, sizeof(s_trains));
     snprintf(s_from, sizeof(s_from), "%s", s_board.from);
@@ -400,6 +530,15 @@ static void inbox(DictionaryIterator *iter, void *context) {
     s_route_pending = false;
     s_board_token = s_token;
     s_selected = 0;
+    memset(s_platform_changed, 0, sizeof(s_platform_changed));
+    for (int i = 0; i < s_board.count; i++) {
+      for (int j = 0; j < previous_count; j++) {
+        if (!same_journey(&previous[j], &s_trains[i])) continue;
+        // Once changed it stays marked, also when this refresh brings no further change.
+        s_platform_changed[i] = previous_changed[j] || (live && platform_moved(&previous[j], &s_trains[i]));
+        break;
+      }
+    }
     for (int i = 0; follow && i < s_board.count; i++) {
       if (!same_journey(&followed, &s_trains[i])) continue;
       s_selected = i;

@@ -1,6 +1,6 @@
 # Traindown for Pebble 2 Duo and Pebble Time 2
 
-A train countdown app inspired by [iRail Traindown](https://github.com/iRail/fitbit-traindown) and NextTrain. One installable bundle supports **Flint (Pebble 2 Duo, 144 × 168 monochrome)**, **Emery (Pebble Time 2, 200 × 228 color)** and **Chalk (Pebble Time Round, 180 × 180 round color)**. The Time 2 uses a larger countdown and color indicators alongside the text labels for delays, cancellations and cached data. On the Time Round every row of text is fitted to the circle: the map runs down the left, the route shares the arrival line, and the journey number and update time sit in the narrow bottom.
+A train countdown app inspired by [iRail Traindown](https://github.com/iRail/fitbit-traindown) and NextTrain. One installable bundle supports **Flint (Pebble 2 Duo, 144 × 168 monochrome)**, **Emery (Pebble Time 2, 200 × 228 color)** and **Chalk (Pebble Time Round, 180 × 180 round color)** and **Gabbro (Pebble Round 2, 260 × 260 round color)**. The Time 2 uses a larger countdown and color indicators alongside the text labels for delays, cancellations and cached data. The line from your departure station to the destination, with a ring for each change, runs down the left of every screen; on the round watches it follows the curve of the screen and every row of text is fitted to the circle, with the route sharing the arrival line and the journey number and update time in the narrow bottom.
 
 **Journey planning runs on your Android phone inside the Pebble app. No hosted backend or separate phone app is required.** The companion includes `@irail/planner` 0.1.3, downloads timetables and real-time updates directly from iRail's CDN, computes journeys locally, and sends compact results to the native C watch interface.
 
@@ -12,15 +12,16 @@ A train countdown app inspired by [iRail Traindown](https://github.com/iRail/fit
 - Live countdown to departure as `5h 13m 30s`, expected departure and arrival, first platform, delay and the layover stations.
 - Refresh on opening and every minute while the watch app is running, and again when the countdown of the selected train ends (so a late delay shows up immediately). A refresh keeps the journey you are following selected instead of jumping back to the first one.
 - The departure time shown is the *planned* one (the train you are taking). A delayed train is labelled **DELAYED 4 MIN** (or **DELAYED 1H 05M** from an hour up), the countdown runs to the expected, delayed departure, and the line below gives that time ("Leaves at 15:44").
-- The watch buzzes when the selected journey changes: a long vibration when it is canceled, a short one when its delay changes.
-- Persistent last-successful results, marked **Cached** after a failed refresh, disconnection, or two minutes without fresh data.
+- The watch buzzes when the selected journey changes: a long vibration when it is canceled, two short pulses when its platform changes and a single short one when its delay changes. A changed platform is also highlighted in a box (orange; black on the Pebble 2 Duo) for as long as the journey is on the board.
+- The footer shows the journey number, the time now and how far the data can be trusted, as a symbol and (where there is room) a word: a green dot **Live**, a ring with a dot running around it **Updating**, a grey square **Cached 5m** (age of the data; after a failed refresh or two minutes without fresh data) and a red cross **Offline** (no phone connection). The symbols also differ in shape, for the black and white Pebble 2 Duo. On the Time Round only the symbol fits.
+- Persistent last-successful results, shown as **Cached** after a failed refresh, disconnection, or two minutes without fresh data.
 - Atomic Bluetooth updates: an incomplete transfer leaves the previous board intact.
 
 Times on the watch follow the watch's timezone. Set it to Belgium's timezone for Belgian local train times. Delays are included once in expected times; the extra `+N min` label describes that same delay. A platform shown as `?` is unknown. Cached results do not receive further delay or cancellation updates without a connection.
 
 ## In action
 
-Recorded in the Pebble Time 2, Pebble 2 Duo and Pebble Time Round emulators (`scripts/record-gifs.sh <platform>`; the corners outside the round screen are filled dark). The phone is simulated: the same messages the phone companion sends are fed to the watch, so the train data is sample data. Times are the clock of the machine that recorded them.
+Recorded in the Pebble Time 2, Pebble 2 Duo, Pebble Time Round and Pebble Round 2 emulators (`scripts/record-gifs.sh <platform>`; the corners outside the round screen are filled dark). The phone is simulated: the same messages the phone companion sends are fed to the watch, so the train data is sample data. Times are the clock of the machine that recorded them.
 
 <table>
   <tr>
@@ -28,24 +29,28 @@ Recorded in the Pebble Time 2, Pebble 2 Duo and Pebble Time Round emulators (`sc
     <th>Pebble Time 2 (Emery)</th>
     <th>Pebble 2 Duo (Flint)</th>
     <th>Pebble Time Round (Chalk)</th>
+    <th>Pebble Round 2 (Gabbro)</th>
   </tr>
   <tr>
-    <td><b>A train that is delayed by 4 minutes, then canceled.</b> The countdown includes the delay, and the line and text turn red.</td>
-    <td><img src="docs/emery-delayed-canceled.gif" width="300" alt="Pebble Time 2: a train on time, then delayed by 4 minutes, then canceled"></td>
-    <td><img src="docs/flint-delayed-canceled.gif" width="216" alt="Pebble 2 Duo: a train on time, then delayed by 4 minutes, then canceled"></td>
-    <td><img src="docs/chalk-delayed-canceled.gif" width="270" alt="Pebble Time Round: a train on time, then delayed by 4 minutes, then canceled"></td>
+    <td><b>A train that is delayed by 4 minutes, moved to another platform, then canceled.</b> The countdown includes the delay, the changed platform is highlighted, and the line and text turn red.</td>
+    <td><img src="docs/emery-delayed-canceled.gif" width="180" alt="Pebble Time 2: a train on time, then delayed by 4 minutes, then moved to platform 6, then canceled"></td>
+    <td><img src="docs/flint-delayed-canceled.gif" width="130" alt="Pebble 2 Duo: a train on time, then delayed by 4 minutes, then moved to platform 6, then canceled"></td>
+    <td><img src="docs/chalk-delayed-canceled.gif" width="160" alt="Pebble Time Round: a train on time, then delayed by 4 minutes, then moved to platform 6, then canceled"></td>
+    <td><img src="docs/gabbro-delayed-canceled.gif" width="180" alt="Pebble Round 2: a train on time, then delayed by 4 minutes, then moved to platform 6, then canceled"></td>
   </tr>
   <tr>
     <td><b>Changing the destination.</b> Hold Down (on the Time 2 you can also tap the bottom), then zoom in: B, Br, Bru, Brugge.</td>
-    <td><img src="docs/emery-choose-station.gif" width="300" alt="Pebble Time 2: choosing Brugge as destination in the station picker"></td>
-    <td><img src="docs/flint-choose-station.gif" width="216" alt="Pebble 2 Duo: choosing Brugge as destination in the station picker"></td>
-    <td><img src="docs/chalk-choose-station.gif" width="270" alt="Pebble Time Round: choosing Brugge as destination in the station picker"></td>
+    <td><img src="docs/emery-choose-station.gif" width="180" alt="Pebble Time 2: choosing Brugge as destination in the station picker"></td>
+    <td><img src="docs/flint-choose-station.gif" width="130" alt="Pebble 2 Duo: choosing Brugge as destination in the station picker"></td>
+    <td><img src="docs/chalk-choose-station.gif" width="160" alt="Pebble Time Round: choosing Brugge as destination in the station picker"></td>
+    <td><img src="docs/gabbro-choose-station.gif" width="180" alt="Pebble Round 2: choosing Brugge as destination in the station picker"></td>
   </tr>
   <tr>
     <td><b>A trip with a change.</b> Select opens every train, the stops in between and the time to change; here a delay leaves only 2 minutes.</td>
-    <td><img src="docs/emery-transfer.gif" width="300" alt="Pebble Time 2: the trip overview of a journey with a change at Brussel-Noord"></td>
-    <td><img src="docs/flint-transfer.gif" width="216" alt="Pebble 2 Duo: the trip overview of a journey with a change at Brussel-Noord"></td>
-    <td><img src="docs/chalk-transfer.gif" width="270" alt="Pebble Time Round: the trip overview of a journey with a change at Brussel-Noord"></td>
+    <td><img src="docs/emery-transfer.gif" width="180" alt="Pebble Time 2: the trip overview of a journey with a change at Brussel-Noord"></td>
+    <td><img src="docs/flint-transfer.gif" width="130" alt="Pebble 2 Duo: the trip overview of a journey with a change at Brussel-Noord"></td>
+    <td><img src="docs/chalk-transfer.gif" width="160" alt="Pebble Time Round: the trip overview of a journey with a change at Brussel-Noord"></td>
+    <td><img src="docs/gabbro-transfer.gif" width="180" alt="Pebble Round 2: the trip overview of a journey with a change at Brussel-Noord"></td>
   </tr>
 </table>
 

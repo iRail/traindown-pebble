@@ -197,8 +197,12 @@ static uint16_t num_rows(MenuLayer *layer, uint16_t section, void *context) {
 }
 
 // On the round screen rows and header are inset from the curve; the header gets room above its text.
-#define ROW_INSET PBL_IF_ROUND_ELSE(22, 5)
-static int16_t header_height(MenuLayer *layer, uint16_t section, void *context) { return PBL_IF_ROUND_ELSE(30, 18); }
+// The 260 px Pebble Round 2 needs a wider inset and header than the 180 px Time Round.
+static bool wide_round(const GRect bounds) { return PBL_IF_ROUND_ELSE(bounds.size.w >= 240, false); }
+static int row_inset(const GRect bounds) { return PBL_IF_ROUND_ELSE(wide_round(bounds) ? 34 : 22, 5); }
+static int16_t header_height(MenuLayer *layer, uint16_t section, void *context) {
+  return PBL_IF_ROUND_ELSE(wide_round(layer_get_bounds(menu_layer_get_layer(layer))) ? 44 : 30, 18);
+}
 static int16_t cell_height(MenuLayer *layer, MenuIndex *index, void *context) {
   return layer_get_bounds(menu_layer_get_layer(layer)).size.h >= 228 ? 34 : 28;
 }
@@ -218,7 +222,7 @@ static void draw_header(GContext *ctx, const Layer *cell, uint16_t section, void
   graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorDukeBlue, GColorBlack));
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
   graphics_context_set_text_color(ctx, GColorWhite);
-  graphics_draw_text(ctx, text, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD), GRect(PBL_IF_ROUND_ELSE(24, 4), PBL_IF_ROUND_ELSE(12, 0), bounds.size.w - PBL_IF_ROUND_ELSE(48, 8), 18),
+  graphics_draw_text(ctx, text, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD), GRect(PBL_IF_ROUND_ELSE(wide_round(bounds) ? 36 : 24, 4), PBL_IF_ROUND_ELSE(wide_round(bounds) ? 20 : 12, 0), bounds.size.w - PBL_IF_ROUND_ELSE(wide_round(bounds) ? 72 : 48, 8), 18),
                      GTextOverflowModeTrailingEllipsis, PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft), NULL);
 }
 
@@ -243,7 +247,8 @@ static void draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, void *c
   }
   const bool large = bounds.size.w >= 200;
   const int count_w = count[0] ? 28 : 0;
-  GRect area = GRect(ROW_INSET, 0, bounds.size.w - 2 * ROW_INSET - count_w, bounds.size.h);
+  const int inset = row_inset(bounds);
+  GRect area = GRect(inset, 0, bounds.size.w - 2 * inset - count_w, bounds.size.h);
   const char *font = large ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD;
   if (row->kind != RowGroup) font = large ? FONT_KEY_GOTHIC_24 : FONT_KEY_GOTHIC_18;
   // Long names step down one size instead of being cut off.
@@ -255,7 +260,7 @@ static void draw_row(GContext *ctx, const Layer *cell, MenuIndex *index, void *c
   area.size.h = text_h + 6;
   graphics_draw_text(ctx, label, fonts_get_system_font(font), area, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   if (count[0]) {
-    graphics_draw_text(ctx, count, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(bounds.size.w - count_w - ROW_INSET + 2, bounds.size.h / 2 - 9, count_w, 18),
+    graphics_draw_text(ctx, count, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(bounds.size.w - count_w - inset + 2, bounds.size.h / 2 - 9, count_w, 18),
                        GTextOverflowModeFill, GTextAlignmentRight, NULL);
   }
 }

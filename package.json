@@ -56,7 +56,8 @@
         "targetPlatforms": [
             "flint",
             "emery",
-            "chalk"
+            "chalk",
+            "gabbro"
         ],
         "usesPermissions": [
             "configurable"

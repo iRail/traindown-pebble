@@ -10,7 +10,9 @@
 #            transfer  one journey with a change at Brussel-Noord, 2 minutes to change
 #            details   the trip overview of that journey (send it after pressing Select)
 # This script leaves the emulator running; stop it with `pebble kill` when you are done.
-# Environment: TOKEN (board id, must match between board and details), TO (destination, default Brussel-Zuid).
+# Environment: TOKEN (board id, must match between board and details), TO (destination, default Brussel-Zuid),
+#              PLATFORM (platform of the first train of the board, default 4), BASE (epoch the departure
+#              times are counted from, default now: set it to keep the same journeys across several feeds).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 platform=${1:?platform: flint|emery|chalk}; scenario=${2:?scenario}
@@ -26,19 +28,19 @@ send() { # name=value pairs; numbers are sent as ints, the rest as strings
   done
   pebble send-app-message --emulator "$platform" ${ints:+--int "${ints[@]}"} ${strings:+--string "${strings[@]}"} >/dev/null
 }
-now=$(date +%s); token=${TOKEN:-$RANDOM}; to=${TO:-Brussel-Zuid}
+now=$(date +%s); base=${BASE:-$now}; token=${TOKEN:-$RANDOM}; to=${TO:-Brussel-Zuid}
 delay=0; canceled=0
 [[ $scenario == delayed ]] && delay=240
 [[ $scenario == canceled ]] && canceled=1
 # The journey of the transfer scenario: leave in 12 minutes (plus 2 late), 40 minutes to Brussel-Noord,
 # change with 2 minutes to spare, 20 minutes on to the destination.
-leave=$((now + 754 + 120)); change=$((leave + 2400)); onward=$((change + 120)); end=$((onward + 1200))
+leave=$((base + 754 + 120)); change=$((leave + 2400)); onward=$((change + 120)); end=$((onward + 1200))
 
 case $scenario in
   board|delayed|canceled)
     send Kind=1 Token=$token Count=2 Updated=$now From=Gent-Sint-Pieters To="$to"
-    send Kind=2 Token=$token Index=0 Departure=$((now + 754 + delay)) Arrival=$((now + 2700 + delay)) Delay=$delay Transfers=0 Canceled=$canceled Platform=4 Train="IC 2134" Via=
-    send Kind=2 Token=$token Index=1 Departure=$((now + 1954)) Arrival=$((now + 3900)) Delay=0 Transfers=1 Canceled=0 Platform=7 Train="IC 1535" Via=Brussel-Noord
+    send Kind=2 Token=$token Index=0 Departure=$((base + 754 + delay)) Arrival=$((base + 2700 + delay)) Delay=$delay Transfers=0 Canceled=$canceled Platform=${PLATFORM:-4} Train="IC 2134" Via=
+    send Kind=2 Token=$token Index=1 Departure=$((base + 1954)) Arrival=$((base + 3900)) Delay=0 Transfers=1 Canceled=0 Platform=7 Train="IC 1535" Via=Brussel-Noord
     send Kind=3 Token=$token ;;
   transfer)
     send Kind=1 Token=$token Count=1 Updated=$now From=Gent-Sint-Pieters To="$to"
