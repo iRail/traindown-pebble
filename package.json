@@ -1,5 +1,5 @@
 {
-    "author": "Pieter",
+    "author": "Pieter Colpaert <pieter@openknowledge.be>",
     "dependencies": {
         "@irail/planner": "0.1.3",
         "@rebble/clay": "^1.0.0"
