@@ -6,10 +6,16 @@
 #
 # Writes docs/<platform>-*.gif at 2x for the README and docs/store/<platform>-*.gif at the watch's
 # own resolution. On the round Time Round the corners outside the screen are filled dark.
+# The emulator is stopped when the script ends.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 P=${1:?platform: flint|emery|chalk}
-work=$(mktemp -d); trap 'rm -rf "$work"' EXIT
+work=$(mktemp -d)
+# Always shut the emulator (qemu and its phone simulator) down again, also after an error or Ctrl-C.
+# Note that `pebble kill` stops every running emulator, not only the one used here.
+cleanup() { rm -rf "$work"; pebble kill >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+trap 'exit 130' INT TERM
 feed() { scripts/emulator-feed.sh "$P" "$@"; }
 press() { pebble emu-button --emulator "$P" "$@" >/dev/null 2>&1; }
 

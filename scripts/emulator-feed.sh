@@ -9,6 +9,7 @@
 #            canceled  the same board with the first train canceled
 #            transfer  one journey with a change at Brussel-Noord, 2 minutes to change
 #            details   the trip overview of that journey (send it after pressing Select)
+# This script leaves the emulator running; stop it with `pebble kill` when you are done.
 # Environment: TOKEN (board id, must match between board and details), TO (destination, default Brussel-Zuid).
 set -euo pipefail
 cd "$(dirname "$0")/.."
