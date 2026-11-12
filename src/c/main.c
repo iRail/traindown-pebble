@@ -620,7 +620,8 @@ static void touch(const TouchEvent *event, void *context) {
 static void tick(struct tm *tick_time, TimeUnits units) {
   time_t now = time(NULL);
   if (s_loading && now - s_requested >= 60) failed(APP_MSG_SEND_TIMEOUT, NULL);
-  if (s_board.updated && now - s_board.updated > 120) s_stale = true;
+  // Signed on purpose: a watch clock a little behind the phone's must not make fresh data look old.
+  if (s_board.updated && (int32_t)now - (int32_t)s_board.updated > 120) s_stale = true;
   // Refresh every minute, and the moment the selected train's countdown ends: a delay that is
   // announced at the last second then shows at once instead of "Departed" until the next minute.
   const bool countdown_ended = s_board.count && s_selected < s_board.count &&
