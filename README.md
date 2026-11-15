@@ -60,7 +60,7 @@ Use the current official Pebble Android app and an up-to-date Android System Web
 
 The phone keeps an initialized planner while the companion is running, with a **16 MiB connection-page cache** (not a limit on total process memory). It refreshes real-time data on demand at most every 30 seconds and reloads timetable metadata after six hours. Closing the app can discard the phone's in-memory timetable cache; reopening may require fresh downloads. Initial loading uses more data and time than subsequent refreshes. Network operations are canceled after 45 seconds so the watch can offer a retry.
 
-This version targets Android. The iOS Pebble app and older desktop PebbleKit JS simulators have different runtimes and are not supported by this companion build.
+Experimental iPhone support supplies missing web APIs in the Pebble Core JavaScript runtime and uses its XMLHttpRequest bridge for timetable data. After building, run `node scripts/smoke-ios.mjs` to check bundle startup and settings generation, or add `--live` to request a real journey board. The smoke test uses a simulated iOS bridge. Tested on iOS 26.5.1 with a Pebble 2 Duo running PebbleOS 4.44.4. Live departures loaded, and saving a route in the iPhone settings updated the watch. Changing stations on the watch also worked while Pebble Core was in the background or the iPhone was locked. After force-quitting Pebble Core, reopening it restored the connection.
 
 ## Build and install
 

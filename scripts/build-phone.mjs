@@ -11,7 +11,7 @@ const result = await build({
   bundle: true,
   platform: 'browser',
   format: 'iife',
-  target: 'chrome100',
+  target: ['chrome100', 'safari15'],
   sourcemap: true,
   minify: true,
   metafile: true,
