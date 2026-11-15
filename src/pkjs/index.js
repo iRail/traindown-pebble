@@ -1,3 +1,4 @@
+require('./phone-runtime');
 var Clay = require('@rebble/clay');
 var clay = new Clay(require('./config.json'), null, { autoHandleEvents: false });
 var core = require('./transport');
