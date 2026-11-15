@@ -1,4 +1,4 @@
-# Traindown for Pebble 2 Duo and Pebble Time 2
+# Traindown for Pebble
 
 A train countdown app inspired by [iRail Traindown](https://github.com/iRail/fitbit-traindown) and NextTrain. One installable bundle supports **Flint (Pebble 2 Duo, 144 × 168 monochrome)**, **Emery (Pebble Time 2, 200 × 228 color)** and **Chalk (Pebble Time Round, 180 × 180 round color)** and **Gabbro (Pebble Round 2, 260 × 260 round color)**. The Time 2 uses a larger countdown and color indicators alongside the text labels for delays, cancellations and cached data. The line from your departure station to the destination, with a ring for each change, runs down the left of every screen; on the round watches it follows the curve of the screen and every row of text is fitted to the circle, with the route sharing the arrival line and the journey number and update time in the narrow bottom.
 
@@ -56,17 +56,27 @@ Recorded in the Pebble Time 2, Pebble 2 Duo, Pebble Time Round and Pebble Round 
 
 ## Phone requirements
 
-On Android, use the official Pebble app and an up-to-date Android System WebView. Its PebbleKit JS runtime is a Chromium WebView. The browser bundle targets Chromium 100+ and uses modern JavaScript, typed arrays, `fetch`, `AbortController`, `Intl`, and the browser build of Apache Arrow. The planner's main entry runs without Web Workers or Node.js APIs.
+### Android
 
-The phone keeps an initialized planner while the companion is running, with a **16 MiB connection-page cache** (not a limit on total process memory). It refreshes real-time data on demand at most every 30 seconds and reloads timetable metadata after six hours. Closing the app can discard the phone's in-memory timetable cache; reopening may require fresh downloads. Initial loading uses more data and time than subsequent refreshes. Network operations are canceled after 45 seconds so the watch can offer a retry.
+Use the official Pebble app and an up-to-date Android System WebView. The companion targets Chromium 100+ and keeps the runtime's native web APIs where available.
 
-On iPhone, use Pebble Core from the App Store. Its PebbleKit JS runtime uses JavaScriptCore. The Traindown companion supplies missing web APIs and uses Pebble Core’s XMLHttpRequest bridge to download timetable data. After building, run `node scripts/smoke-ios.mjs` to check bundle startup and settings generation, or add `--live` to request a real journey board. The smoke test uses a simulated iOS bridge. Tested on iOS 26.5.1 with a Pebble 2 Duo running PebbleOS 4.44.4. Live departures loaded, and saving a route in the iPhone settings updated the watch. Changing stations on the watch also worked while Pebble Core was in the background or the iPhone was locked. After force-quitting Pebble Core, reopening it restored the connection.
+### iPhone
+
+Use Pebble Core from the App Store. Live departures, settings changes and station selection on the watch have been tested on **iOS 26.5.1 with a Pebble 2 Duo running PebbleOS 4.44.4**, including while Pebble Core was in the background or the phone was locked.
+
+**Leave Pebble Core running in the background.** You can use other apps or lock the phone. In the tested setup, force-quitting Pebble Core (swiping its card away in the app switcher) disconnects the companion and the watch reports **Phone disconnected**. Reopen Pebble Core to restore the connection; Traindown requests fresh data when the connection returns. Traindown depends on Pebble Core to run its phone companion, so this connection behavior must be handled by Pebble Core and iOS.
+
+### Loading and offline use
+
+Both platforms need a connected phone companion and internet access for fresh departures. The watch keeps the last successful board when disconnected, but it receives no new delay or cancellation updates until the connection returns.
+
+The phone keeps an initialized planner while the companion is running, with a **16 MiB connection-page cache** (not a limit on total process memory). It refreshes real-time data on demand at most every 30 seconds and reloads timetable metadata after six hours. Terminating the phone companion can discard its in-memory timetable cache; restarting it may require fresh downloads. Initial loading uses more data and time than subsequent refreshes. Network operations are canceled after 45 seconds so the watch can offer a retry.
 
 Older desktop PebbleKit JS simulators remain unsupported by this companion build.
 
 ## Build and install
 
-Install Node.js **22.12+**, npm, Python 3, and the Pebble SDK with Flint and Emery support, then:
+Install Node.js **22.12+**, npm, Python 3, and the Pebble SDK with Flint, Emery, Chalk and Gabbro support, then:
 
 ```sh
 npm ci
@@ -74,7 +84,7 @@ pebble build
 pebble install --phone PHONE_IP build/pebble.pbw
 ```
 
-Enable the phone app's Developer Connection for local installation. Alternatively, sideload the generated `.pbw` through the Pebble mobile app. The bundle includes both Flint and Emery; installation selects the matching binary. Native C supports both watches using one codebase.
+Enable the phone app's Developer Connection for local installation. Alternatively, sideload the generated `.pbw` through the Pebble mobile app. The bundle includes all four watch platforms; installation selects the matching binary. The watches share one native C codebase.
 
 The `wscript` bundles the phone code with esbuild, including the compiled Clay settings component and SDK-generated numeric message keys. `enableMultiJS` is intentionally false because the SDK's older webpack cannot parse the planner's modern ESM dependencies. The custom build includes those keys explicitly.
 
@@ -104,7 +114,7 @@ All 746 stations known to `@irail/planner` are stored on the watch, so the picke
 
 The station list is `resources/stations.txt`, generated from the planner by `node scripts/build-stations.mjs` (needs internet). It must stay sorted the way that script sorts it, because the watch finds all stations with a given prefix as one contiguous range; `npm test` checks this. Two stations whose names the watch fonts cannot draw are left out.
 
-The app needs a connected Pebble phone companion and internet for fresh data. It refreshes only while open. This version does not include background alerts, automatic nearest-station selection, or transfer-by-transfer detail screens.
+Traindown refreshes only while the watch app is open. This version does not include background alerts or automatic nearest-station selection.
 
 ## Validate
 
@@ -113,7 +123,9 @@ npm test
 pebble build
 ```
 
-Tests cover delay conversion, cancellation propagation, planner initialization/refresh/retry/timeout behavior, phone message ordering and failure handling, route reversal, and UTF-8 buffer limits.
+Tests cover delay conversion, cancellation propagation, planner initialization/refresh/retry/timeout behavior, phone message ordering and failure handling, route reversal, UTF-8 buffer limits, and the iOS fetch fallback's JSON decoding, HTTP status and cancellation behavior.
+
+On Android, PebbleKit JS runs in a Chromium WebView. On iPhone, it runs in JavaScriptCore; the companion supplies missing web APIs and uses Pebble Core's XMLHttpRequest bridge when native `fetch` is unavailable. The bundle targets Chromium 100+ and Safari 15+, uses Apache Arrow's browser build, and runs without Web Workers or Node.js APIs.
 
 To exercise the actual bundled companion in Chromium against the live iRail CDN, install a Playwright Chromium browser (`npx playwright-core install chromium`) or set `CHROMIUM_PATH` to an existing Chromium executable, then run:
 
@@ -121,4 +133,24 @@ To exercise the actual bundled companion in Chromium against the live iRail CDN,
 npm run test:browser
 ```
 
-This test simulates the Pebble bridge, opens the bundled settings, saves a route, computes real journeys inside the browser, and checks the resulting watch messages. It reports initial and repeat query timing and download volume in `build/browser-smoke.json`. For device testing, check that the settings page opens, saving a route updates the watch, and fresh departures arrive over Bluetooth. Run these checks with the Pebble app on Android and Pebble Core on iPhone. Watch layouts and the station picker can be checked in the Flint and Emery emulators; the picker runs entirely on the watch, so `pebble emu-button` works (use `push`, wait, `release` for a long press). The emulator's phone runtime cannot run the planner, so send sample AppMessages to see journeys (the `Via` key carries the layover names; for the trip overview, press Select and then send Kind 4 to 7 messages with the board's Token and Index). Touch input is only available on the Time 2 and has not been tried in the emulator.
+This test simulates the Pebble bridge, opens the bundled settings, saves a route, computes real journeys inside the browser, and checks the resulting watch messages. It reports initial and repeat query timing and download volume in `build/browser-smoke.json`.
+
+To check bundle startup and settings generation without browser globals, run the simulated iOS bridge after building:
+
+```sh
+node --stack-size=256 scripts/smoke-ios.mjs
+node --stack-size=256 scripts/smoke-ios.mjs --live
+```
+
+The `--live` check requests a real journey board. The reduced stack size also exercises UTF-8 decoding of large station metadata under conditions similar to the original iPhone stack overflow.
+
+The Chromium and simulated iOS checks exercise the companion's JavaScript and networking. They do not verify Bluetooth or phone background behavior. On physical Android and iPhone devices, check:
+
+- First launch and any network permission prompt, followed by fresh departures on the watch.
+- Opening settings and saving a different route, then changing stations on the watch.
+- A refresh while the phone app is in the background and while the phone is locked.
+- Disconnecting and reconnecting the phone, then receiving a fresh board. On iPhone, also force-quit and reopen Pebble Core to verify recovery.
+
+The first-use iPhone network permission prompt remains unverified. Android compatibility has been checked in Chromium; physical Android testing of the iOS support change remains unverified.
+
+Watch layouts and the station picker can be checked in the Flint and Emery emulators; the picker runs entirely on the watch, so `pebble emu-button` works (use `push`, wait, `release` for a long press). The emulator's phone runtime cannot run the planner, so send sample AppMessages to see journeys (the `Via` key carries the layover names; for the trip overview, press Select and then send Kind 4 to 7 messages with the board's Token and Index). Touch input is only available on the Time 2 and has not been tried in the emulator.
