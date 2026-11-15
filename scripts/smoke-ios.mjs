@@ -57,13 +57,18 @@ assert.match(configUrl, /^data:text\/html/);
 console.log('Companion loaded and generated its settings page.');
 if (process.argv.includes('--live')) {
   events.ready();
-  const until = Date.now() + 55000;
-  while (!messages.some(m => m[keys.Kind] === 3) && Date.now() < until) {
+  const until = Date.now() + 100000;
+  const completed = () => messages.filter(m => m[keys.Kind] === 1 &&
+    messages.some(end => end[keys.Kind] === 3 && end[keys.Token] === m[keys.Token]));
+  while (!completed().some(m => m[keys.Freshness] !== 2) && Date.now() < until) {
     await new Promise(resolve => setTimeout(resolve, 100));
     const failure = messages.find(m => /timed out|Cannot load/i.test(m[keys.Status]));
     assert.ok(!failure, JSON.stringify(failure));
   }
   assert.ok(messages.some(m => m[keys.Kind] === 2), 'Expected a journey');
-  assert.ok(messages.some(m => m[keys.Kind] === 3), 'Expected a completed board');
-  console.log('Received a live journey board.');
+  const boards = completed();
+  assert.equal(boards[0]?.[keys.Freshness], 2, 'Expected a timetable preview first');
+  assert.equal(boards[0]?.[keys.Updated], 0, 'Timetable preview must not claim live data');
+  assert.ok(boards.some(m => m[keys.Freshness] !== 2 && m[keys.Updated] > 0), 'Expected a refreshed board');
+  console.log('Received a timetable preview followed by a refreshed journey board.');
 }
