@@ -64,7 +64,7 @@ test('phone rejects missing and identical stations', function () {
   assert.throws(function () { h.transport.configure({ from: 'Gent', to: 'gent' }); }, /different/);
 });
 
-test('changing settings during a request refreshes the new route after committing the old one', function () {
+test('changing settings during a request skips obsolete results and plans the new route', function () {
   var callbacks = [], routes = [];
   var h = harness(function (route, done) { routes.push(route); callbacks.push(done); });
   h.transport.refresh(false);
@@ -75,7 +75,7 @@ test('changing settings during a request refreshes the new route after committin
   assert.equal(routes.length, 2);
   assert.deepEqual(routes[1], { from: 'Leuven', to: 'Gent' });
   callbacks[1](null, { updated: 124, journeys: [] });
-  assert.deepEqual(h.messages.filter(function (m) { return m.Kind === 1; }).map(function (m) { return m.From; }), ['Gent-Sint-Pieters', 'Leuven']);
+  assert.deepEqual(h.messages.filter(function (m) { return m.Kind === 1; }).map(function (m) { return m.From; }), ['Leuven']);
 });
 
 test('without a saved route the phone plans Ghent to Brussels South', function () {
@@ -175,4 +175,93 @@ test('only the last three boards can be asked for details', function () {
   h.messages.length = 0;
   h.transport.details(tokens[3], 0);
   assert.equal(h.messages[0].Kind, 4);
+});
+
+test('preview and refreshed boards commit separately and keep distinct detail snapshots', async function () {
+  var complete, preview;
+  var h = harness(function (route, done, partial) { complete = done; preview = partial; });
+  h.transport.refresh(false);
+  await preview({ updated: 100, updating: true, cached: true, journeys: [overviewJourney(1)] });
+  var first = h.messages.find(function (m) { return m.Kind === 1; });
+  assert.equal(first.Updated, 100);
+  assert.equal(first.Freshness, 2);
+  assert.deepEqual(h.messages.map(function (m) { return m.Kind; }), [0, 1, 2, 3]);
+  var updated = overviewJourney(1);
+  updated.legs[0].platform = '9';
+  complete(null, { updated: 110, updating: false, cached: false, journeys: [updated] });
+  var boards = h.messages.filter(function (m) { return m.Kind === 1; });
+  assert.notEqual(boards[0].Token, boards[1].Token);
+  assert.equal(boards[1].Freshness, 0);
+  h.messages.length = 0;
+  h.transport.details(first.Token, 0);
+  assert.equal(h.messages[1].Platform, '7');
+  h.messages.length = 0;
+  h.transport.details(boards[1].Token, 0);
+  assert.equal(h.messages[1].Platform, '9');
+});
+
+test('a refresh failure preserves the committed preview and its data age', async function () {
+  var complete, preview;
+  var h = harness(function (route, done, partial) { complete = done; preview = partial; });
+  h.transport.refresh(false);
+  await preview({ updated: 100, updating: true, journeys: [overviewJourney(1)] });
+  complete(new Error('Offline'));
+  assert.equal(h.messages.filter(function (m) { return m.Kind === 3; }).length, 1);
+  assert.equal(h.messages.find(function (m) { return m.Kind === 1; }).Updated, 100);
+  assert.equal(h.messages.at(-1).Status, 'Offline');
+});
+
+test('preview awaits the final Bluetooth acknowledgment and a failed row rejects it', async function () {
+  var complete, preview, ack, kinds = [];
+  var h = harness(function (route, done, partial) { complete = done; preview = partial; }, function (message, ok, fail) {
+    kinds.push(message.Kind);
+    if (message.Kind === 3) ack = ok; else ok();
+  });
+  h.transport.refresh(false);
+  var committed = false;
+  var pending = preview({ updated: 0, updating: true, journeys: [] }).then(function () { committed = true; });
+  await Promise.resolve();
+  assert.equal(committed, false);
+  ack();
+  await pending;
+  assert.equal(committed, true);
+  complete(new Error('Offline'));
+  assert.deepEqual(kinds, [0, 1, 3, 0]);
+
+  h = harness(function (route, done, partial) { preview = partial; }, function (message, ok, fail) {
+    if (message.Kind === 2) fail(); else ok();
+  });
+  h.transport.refresh(false);
+  await assert.rejects(preview({ updated: 0, updating: true, journeys: [overviewJourney(1)] }), /Transfer failed/);
+});
+
+test('obsolete previews skip their transfer and cannot replace the newly selected route', async function () {
+  var requests = [], cancels = 0;
+  var values = {}, messages = [];
+  var transport = core.createTransport({
+    storage: { getItem: function (k) { return values[k]; }, setItem: function (k, v) { values[k] = v; } },
+    send: function (message, ok) { messages.push(message); ok(); },
+    cancel: function () { cancels++; },
+    request: function (route, done, partial) { requests.push({ route: route, done: done, preview: partial }); }
+  });
+  transport.refresh(false);
+  transport.select('Leuven', 'Gent');
+  assert.equal(cancels, 1);
+  assert.equal(await requests[0].preview({ updated: 0, updating: true, journeys: [] }), false);
+  requests[0].done(null, { updated: 110, journeys: [] });
+  assert.equal(messages.some(function (m) { return m.Kind === 1; }), false);
+  requests[1].done(null, { updated: 120, cached: true, journeys: [] });
+  var board = messages.find(function (m) { return m.Kind === 1; });
+  assert.equal(board.From, 'Leuven');
+  assert.equal(board.Freshness, 1);
+});
+
+test('reversing a route during a refresh saves and plans the reversal', function () {
+  var requests = [];
+  var h = harness(function (route, done) { requests.push({ route: route, done: done }); });
+  h.transport.refresh(false);
+  h.transport.refresh(true);
+  requests[0].done(null, { updated: 123, journeys: [] });
+  assert.deepEqual(requests[1].route, { from: 'Liège-Guillemins', to: 'Gent-Sint-Pieters' });
+  requests[1].done(null, { updated: 124, journeys: [] });
 });

@@ -14,7 +14,7 @@ A train countdown app inspired by [iRail Traindown](https://github.com/iRail/fit
 - The departure time shown is the *planned* one (the train you are taking). A delayed train is labelled **DELAYED 4 MIN** (or **DELAYED 1H 05M** from an hour up), the countdown runs to the expected, delayed departure, and the line below gives that time ("Leaves at 15:44").
 - The watch buzzes when the selected journey changes: a long vibration when it is canceled, two short pulses when its platform changes and a single short one when its delay changes. A changed platform is also highlighted in a box (orange; black on the Pebble 2 Duo) for as long as the journey is on the board.
 - The footer shows the journey number, the time now and how far the data can be trusted, as a symbol and (where there is room) a word: a green dot **Live**, a ring with a dot running around it **Updating**, a grey square **Cached 5m** (age of the data; after a failed refresh or two minutes without fresh data) and a red cross **Offline** (no phone connection). The symbols also differ in shape, for the black and white Pebble 2 Duo. On the Time Round only the symbol fits.
-- Persistent last-successful results, shown as **Cached** after a failed refresh, disconnection, or two minutes without fresh data.
+- Persistent last-successful results, marked **Cached** after a failed refresh or two minutes without fresh real-time data, and **Offline** while disconnected.
 - Atomic Bluetooth updates: an incomplete transfer leaves the previous board intact.
 
 Times on the watch follow the watch's timezone. Set it to Belgium's timezone for Belgian local train times. Delays are included once in expected times; the extra `+N min` label describes that same delay. A platform shown as `?` is unknown. Cached results do not receive further delay or cancellation updates without a connection.
@@ -70,7 +70,9 @@ Use Pebble Core from the App Store. Live departures, settings changes and statio
 
 Both platforms need a connected phone companion and internet access for fresh departures. The watch keeps the last successful board when disconnected, but it receives no new delay or cancellation updates until the connection returns.
 
-The phone keeps an initialized planner while the companion is running, with a **16 MiB connection-page cache** (not a limit on total process memory). It refreshes real-time data on demand at most every 30 seconds and reloads timetable metadata after six hours. Terminating the phone companion can discard its in-memory timetable cache; restarting it may require fresh downloads. Initial loading uses more data and time than subsequent refreshes. Network operations are canceled after 45 seconds so the watch can offer a retry.
+The phone plans a journey using its cached timetable pages and last known real-time data first. If a real-time refresh is due, it sends that initial board to the watch with **Updating** in the footer, then downloads the latest delays, cancellations and platforms and replans. You can browse journeys and open their details while this happens. If the refresh fails, the initial board stays available as **Cached**. Its age comes from the real-time feed's timestamp; calculating a new route does not make old data fresh. Without a known feed timestamp, the footer shows **Cached** without an age after the update finishes.
+
+The phone keeps an initialized planner while the companion is running, with a **16 MiB connection-page cache** (not a limit on total process memory). It checks for real-time updates on demand when at least 30 seconds have passed since the last successful check, and reloads timetable metadata after six hours. A route may still need timetable pages that have not been downloaded yet. Terminating the phone companion discards its in-memory cache; restarting it may require fresh downloads. Initial loading uses more data and time than subsequent refreshes. Timetable loading and planning have a 45-second deadline, and the subsequent real-time refresh and replan get a separate 45 seconds. A failed or timed-out real-time refresh keeps the timetable cache for the next request.
 
 Older desktop PebbleKit JS simulators remain unsupported by this companion build.
 
@@ -123,7 +125,7 @@ npm test
 pebble build
 ```
 
-Tests cover delay conversion, cancellation propagation, planner initialization/refresh/retry/timeout behavior, phone message ordering and failure handling, route reversal, UTF-8 buffer limits, and the iOS fetch fallback's JSON decoding, HTTP status and cancellation behavior.
+Tests cover delay conversion, cancellation propagation, timetable-first planning, real-time freshness and failure recovery, route changes during refreshes, atomic phone message ordering, route reversal, UTF-8 buffer limits, and the iOS fetch fallback's JSON decoding, HTTP status and cancellation behavior.
 
 On Android, PebbleKit JS runs in a Chromium WebView. On iPhone, it runs in JavaScriptCore; the companion supplies missing web APIs and uses Pebble Core's XMLHttpRequest bridge when native `fetch` is unavailable. The bundle targets Chromium 100+ and Safari 15+, uses Apache Arrow's browser build, and runs without Web Workers or Node.js APIs.
 
@@ -133,7 +135,7 @@ To exercise the actual bundled companion in Chromium against the live iRail CDN,
 npm run test:browser
 ```
 
-This test simulates the Pebble bridge, opens the bundled settings, saves a route, computes real journeys inside the browser, and checks the resulting watch messages. It reports initial and repeat query timing and download volume in `build/browser-smoke.json`.
+This test simulates the Pebble bridge, computes real journeys inside the browser, and holds the real-time response until the first board and its trip details arrive. It also checks settings changes, an explicit real-time refresh, and retaining the preview when a refresh fails. It reports initial and repeat preview timing and download volume in `build/browser-smoke.json`. Network errors logged during the deliberately failed refresh are expected.
 
 To check bundle startup and settings generation without browser globals, run the simulated iOS bridge after building:
 
@@ -142,7 +144,7 @@ node --stack-size=256 scripts/smoke-ios.mjs
 node --stack-size=256 scripts/smoke-ios.mjs --live
 ```
 
-The `--live` check requests a real journey board. The reduced stack size also exercises UTF-8 decoding of large station metadata under conditions similar to the original iPhone stack overflow.
+The `--live` check requests a timetable preview followed by a refreshed journey board. The reduced stack size also exercises UTF-8 decoding of large station metadata under conditions similar to the original iPhone stack overflow.
 
 The Chromium and simulated iOS checks exercise the companion's JavaScript and networking. They do not verify Bluetooth or phone background behavior. On physical Android and iPhone devices, check:
 

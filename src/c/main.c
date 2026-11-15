@@ -29,6 +29,8 @@ static Board s_board, s_pending;
 static Train s_trains[MAX_TRAINS], s_rows[MAX_TRAINS];
 static uint8_t s_selected, s_received;
 static int32_t s_token;
+// Kind 1 Freshness: 0 = live, 1 = cached, 2 = real-time refresh still running.
+static int s_pending_freshness;
 // Token of the board on screen when it came from the phone in this session; 0 for a cached board.
 static int32_t s_board_token;
 // Per journey on the board: its platform changed since the board was first seen (not persisted).
@@ -484,6 +486,7 @@ static void inbox(DictionaryIterator *iter, void *context) {
     s_pending.count = count;
     s_pending.version = CACHE_VERSION;
     s_pending.updated = number(iter, MESSAGE_KEY_Updated);
+    s_pending_freshness = number(iter, MESSAGE_KEY_Freshness);
     copy_text(iter, MESSAGE_KEY_From, s_pending.from, sizeof(s_pending.from));
     copy_text(iter, MESSAGE_KEY_To, s_pending.to, sizeof(s_pending.to));
     if (s_route_pending && (strcmp(s_pending.from, s_from) != 0 || strcmp(s_pending.to, s_to) != 0)) {
@@ -545,9 +548,13 @@ static void inbox(DictionaryIterator *iter, void *context) {
       if (live) buzz_on_change(&followed, &s_trains[i]);
       break;
     }
-    s_loading = false;
-    s_stale = false;
-    snprintf(s_status, sizeof(s_status), "No upcoming trains\nSELECT to try again");
+    s_loading = s_pending_freshness == 2;
+    s_stale = s_pending_freshness == 1 || !s_board.updated ||
+              (int32_t)time(NULL) - (int32_t)s_board.updated > 120;
+    // The preview is usable, including its trip details, while the footer keeps
+    // showing Updating until the refreshed board or a failure arrives.
+    if (s_loading) s_requested = time(NULL);
+    snprintf(s_status, sizeof(s_status), "%s", s_loading ? "Updating real-time..." : "No upcoming trains\nSELECT to try again");
     for (int i = 0; i < s_board.count; i++) persist_write_data(CACHE_ROW + i, &s_trains[i], sizeof(Train));
     persist_write_data(CACHE_META, &s_board, sizeof(s_board));
   }

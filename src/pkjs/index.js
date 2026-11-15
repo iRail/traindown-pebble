@@ -10,10 +10,11 @@ var transport = core.createTransport({
     Object.keys(message).forEach(function (key) { payload[keys[key]] = message[key]; });
     Pebble.sendAppMessage(payload, ok, fail);
   },
-  request: function (route, done) {
-    query(route).then(function (board) { done(null, board); }, function (error) {
+  cancel: function () { query.cancel(); },
+  request: function (route, done, preview) {
+    query(route, preview).then(function (board) { done(null, board); }, function (error) {
       console.error('iRail planner:', error);
-      var message = error.status === 400 || error.status === 404 || /timed out/.test(error.message) ?
+      var message = error.status === 400 || error.status === 404 || /timed out|Transfer failed/.test(error.message) ?
         error.message : 'Cannot load trains; check internet';
       done(new Error(message));
     });

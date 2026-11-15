@@ -1,4 +1,4 @@
-// Phone-to-watch transport; planning is supplied by the Android companion.
+// Phone-to-watch transport; planning is supplied by the phone companion.
 function shortText(value, max) {
   // Limit by UTF-8 bytes without splitting a code point (AppMessage C buffers).
   var chars = unescape(encodeURIComponent(String(value || '')));
@@ -42,7 +42,7 @@ function detailMessages(token, index, legs) {
 }
 
 function createTransport(options) {
-  var busy = false, token = 0, pendingRefresh = false;
+  var busy = false, token = 0, pendingRefresh = false, activeRoute;
   // The last few boards with their trains, so the watch can ask for a journey's details.
   var boards = {}, boardTokens = [];
   var outgoing = [], sending = false;
@@ -66,6 +66,7 @@ function createTransport(options) {
   }
   function finish() {
     busy = false;
+    activeRoute = undefined;
     if (pendingRefresh) {
       pendingRefresh = false;
       refresh(false);
@@ -85,15 +86,13 @@ function createTransport(options) {
     if (from.toLowerCase() === to.toLowerCase()) throw new Error('Choose two different stations');
     options.storage.setItem('route', JSON.stringify({ from: from, to: to }));
   }
-  function sendAll(messages, index) {
-    if (index === messages.length) { finish(); return; }
-    send(messages[index], function () { sendAll(messages, index + 1); }, function () {
-      status('Transfer failed; press Select');
-      finish();
+  function sendAll(messages, index, done) {
+    if (index === messages.length) { done(); return; }
+    send(messages[index], function () { sendAll(messages, index + 1, done); }, function () {
+      done(new Error('Transfer failed; press Select'));
     });
   }
   function refresh(reverse) {
-    if (busy) { pendingRefresh = true; return; }
     var route = settings();
     if (reverse) {
       var previous = route.from;
@@ -101,15 +100,26 @@ function createTransport(options) {
       route.to = previous;
       options.storage.setItem('route', JSON.stringify(route));
     }
+    if (busy) {
+      pendingRefresh = true;
+      if (options.cancel && (route.from !== activeRoute.from || route.to !== activeRoute.to)) options.cancel();
+      return;
+    }
     busy = true;
+    activeRoute = route;
     status('Updating...');
-    var activeToken = ++token;
-    options.request({ from: route.from, to: route.to }, function (error, data) {
-      if (error) { status(error.message); finish(); return; }
+    function superseded() {
+      var current = settings();
+      return route.from !== current.from || route.to !== current.to;
+    }
+    function transfer(data, done) {
+      if (superseded()) { done(); return; }
       try {
+        var activeToken = ++token;
         if (!data || !Array.isArray(data.journeys) || data.journeys.length > 6 || !isFinite(data.updated)) throw new Error('Invalid planner response');
         var messages = [{ Kind: 1, Token: activeToken, Count: data.journeys.length,
-          From: shortText(data.from || route.from, 47), To: shortText(data.to || route.to, 47), Updated: data.updated }];
+          From: shortText(data.from || route.from, 47), To: shortText(data.to || route.to, 47), Updated: data.updated,
+          Freshness: data.updating ? 2 : data.cached ? 1 : 0 }];
         data.journeys.forEach(function (journey, index) {
           if (!isFinite(journey.departure) || !isFinite(journey.arrival) || !isFinite(journey.delay) ||
               !isFinite(journey.transfers)) throw new Error('Invalid journey response');
@@ -122,8 +132,25 @@ function createTransport(options) {
         boards[activeToken] = data.journeys;
         boardTokens.push(activeToken);
         while (boardTokens.length > 3) delete boards[boardTokens.shift()];
-        sendAll(messages, 0);
-      } catch (invalid) { status(invalid.message); finish(); }
+        sendAll(messages, 0, done);
+      } catch (invalid) { done(invalid); }
+    }
+    options.request({ from: route.from, to: route.to }, function (error, data) {
+      if (superseded()) { finish(); return; }
+      if (error) { status(error.message); finish(); return; }
+      transfer(data, function (error) {
+        if (error) status(error.message);
+        finish();
+      });
+    }, function (data) {
+      // Two complete atomic transfers, each with its own detail token. Do not
+      // release busy between them: the request still owns the real-time phase.
+      return new Promise(function (resolve, reject) {
+        transfer(data, function (error) {
+          if (error) reject(error);
+          else resolve(!superseded());
+        });
+      });
     });
   }
   // The watch wants the trains and stops of one journey of a board it received.
